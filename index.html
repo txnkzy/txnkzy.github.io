@@ -370,8 +370,8 @@ button.chip{cursor:pointer}
   .g-vol{order:6}
   .g-labels{order:7}
   .seg button{padding:7px 10px;font-size:13.5px}
-  .btn.primary{width:38px;padding:0}
-  .btn.primary .txt{display:none}
+  #importBtn{width:38px;padding:0}
+  #importBtn .txt{display:none}
   input[type=range]{width:64px}
   .hud{left:6px;top:6px;max-width:calc(100% - 132px);padding:10px 12px}
   .title{font-size:21px}
@@ -551,6 +551,13 @@ button.chip{cursor:pointer}
     <section class="s-done">
       <dl class="stats" id="impStats"></dl>
       <canvas class="roll" id="roll" aria-label="Preview of the transcribed notes"></canvas>
+      <div class="row">
+        <span class="lbl" id="srcLbl">Source</span>
+        <div class="seg" role="group" aria-labelledby="srcLbl">
+          <button type="button" data-src="solo" aria-pressed="true">Solo melody</button>
+          <button type="button" data-src="mix" aria-pressed="false">Full song</button>
+        </div>
+      </div>
       <div class="row">
         <span class="lbl" id="detLbl">Clean-up</span>
         <div class="seg" role="group" aria-labelledby="detLbl">
@@ -1664,7 +1671,8 @@ function perfTick(now, frameMs){
 var dlg = $('importDlg'), dlgBody = $('dlgBody');
 var OAC = window.OfflineAudioContext || window.webkitOfflineAudioContext;
 var MAX_SEC = 150, MAX_NOTES = 700;
-var IMP = {buffer:null, track:null, detail:'balanced', fit:null, notes:[], raw:[], fileName:'', name:''};
+var IMP = {buffer:null, track:null, trackSolo:null, trackMix:null, mode:'solo', autoMode:'solo', voicedPct:0,
+  detail:'balanced', fit:null, notes:[], raw:[], fileName:'', name:''};
 var DETAIL = {
   tidy:     {minDur:.12,  change:4, gap:3},
   balanced: {minDur:.065, change:3, gap:2},
@@ -1797,6 +1805,180 @@ async function trackPitch(x, sr, onProg){
   return {midi:midi, rms:rms, gate:gate, hop:hop / sr, n:n};
 }
 
+/* ——— Full-song mode ———
+   A produced song rarely gives YIN a clean period: the vocal overlaps guitars,
+   bass and drums. For those we switch to a spectral melody extractor:
+   · centre-channel focus — lead vocals sit in the middle of a stereo mix while
+     guitars and keys are usually panned, so frequency bins where left and
+     right agree are kept and the rest are turned down;
+   · harmonic-sum salience for every candidate pitch from F2 to C6, with a
+     mild preference for the singing range;
+   · a Viterbi path through each frame's strongest candidates that favours a
+     smooth, singable line; frames where the path is weak count as silence. */
+function makeFFT(n){
+  var bits = Math.round(Math.log2(n)), rev = new Uint32Array(n), cs = new Float64Array(n / 2), sn = new Float64Array(n / 2), i;
+  for (i = 0; i < n; i++){ var r = 0, x = i; for (var b = 0; b < bits; b++){ r = (r << 1) | (x & 1); x >>= 1; } rev[i] = r; }
+  for (i = 0; i < n / 2; i++){ cs[i] = Math.cos(2 * Math.PI * i / n); sn[i] = Math.sin(2 * Math.PI * i / n); }
+  return function(re, im){
+    for (var i = 0; i < n; i++){
+      var j = rev[i];
+      if (j > i){ var t = re[i]; re[i] = re[j]; re[j] = t; t = im[i]; im[i] = im[j]; im[j] = t; }
+    }
+    for (var size = 2; size <= n; size <<= 1){
+      var half = size >> 1, step = n / size;
+      for (var start = 0; start < n; start += size){
+        for (var k = 0; k < half; k++){
+          var a = start + k, bb = a + half, c = cs[k * step], s = sn[k * step];
+          var tr = re[bb] * c + im[bb] * s, ti = im[bb] * c - re[bb] * s;
+          re[bb] = re[a] - tr; im[bb] = im[a] - ti; re[a] += tr; im[a] += ti;
+        }
+      }
+    }
+  };
+}
+// Stereo, 150 Hz–5 kHz: drops the bass and kick fundamentals, keeps the voice's harmonics.
+async function prepareStereo(buf){
+  var dur = Math.min(buf.duration, MAX_SEC), rates = [11025, 16000, 22050];
+  for (var i = 0; i < rates.length; i++){
+    try {
+      var sr = rates[i], off = new OAC(2, Math.max(1, Math.ceil(dur * sr)), sr);
+      var src = off.createBufferSource(); src.buffer = buf;
+      var node = src;
+      [150, 150].forEach(function(f){ var hp = off.createBiquadFilter(); hp.type = 'highpass'; hp.frequency.value = f; node.connect(hp); node = hp; });
+      var lp = off.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = Math.min(5000, sr * .45);
+      node.connect(lp); lp.connect(off.destination);
+      src.start(0);
+      var out = await render(off);
+      return {L:out.getChannelData(0), R:out.numberOfChannels > 1 ? out.getChannelData(1) : out.getChannelData(0), sr:sr};
+    } catch (e){ console.warn('stereo prepare at ' + rates[i] + ' failed', e); }
+  }
+  throw new Error('Could not prepare audio');
+}
+async function trackMelody(L, R, sr, onProg){
+  var N = sr <= 11025 ? 2048 : sr <= 16000 ? 4096 : 4096, hop = Math.round(sr * .0232);
+  var n = Math.max(0, Math.floor((L.length - N) / hop)), fft = makeFFT(N), binHz = sr / N, half = N / 2;
+  var win = new Float64Array(N), re = new Float64Array(N), im = new Float64Array(N), spec = new Float64Array(half);
+  for (var i = 0; i < N; i++) win[i] = .5 - .5 * Math.cos(2 * Math.PI * i / (N - 1));
+  // Candidate pitches every 20 cents, with each harmonic's bin precomputed.
+  var FMIN = 87.3, FMAX = 1047, STEP = .2, H = 10, cands = [];
+  for (var m = 12 * Math.log2(FMIN / 440) + 69; m <= 12 * Math.log2(FMAX / 440) + 69; m += STEP){
+    var f0 = 440 * Math.pow(2, (m - 69) / 12), bins = [], wts = [];
+    for (var h = 1; h <= H; h++){
+      var b = h * f0 / binHz;
+      if (b >= half - 2) break;
+      bins.push(b); wts.push(Math.pow(.8, h - 1));
+    }
+    var oct = Math.log2(f0 / 230);
+    cands.push({m:m, bins:bins, wts:wts, prior:.65 + .35 * Math.exp(-.5 * oct * oct / 1.2)});
+  }
+  var C = cands.length, K = 5, sal = new Float64Array(C);
+  var topC = new Int16Array(n * K).fill(-1), topS = new Float32Array(n * K), energy = new Float32Array(n);
+  var t0 = performance.now(), f;
+  for (f = 0; f < n; f++){
+    var o = f * hop;
+    for (i = 0; i < N; i++){ re[i] = L[o + i] * win[i]; im[i] = R[o + i] * win[i]; }
+    fft(re, im);
+    var e = 0;
+    for (var k = 1; k < half; k++){
+      var Zr = re[k], Zi = im[k], Wr = re[N - k], Wi = im[N - k];
+      var Lr = (Zr + Wr) / 2, Li = (Zi - Wi) / 2, Rr = (Zi + Wi) / 2, Ri = (Wr - Zr) / 2;
+      var pL = Lr * Lr + Li * Li, pR = Rr * Rr + Ri * Ri, sim = 2 * (Lr * Rr + Li * Ri) / (pL + pR + 1e-12);
+      var Mr = (Lr + Rr) / 2, Mi = (Li + Ri) / 2, mag = Math.sqrt(Mr * Mr + Mi * Mi) * (sim > 0 ? sim * sim * sim : 0);
+      spec[k] = Math.pow(mag, .6);
+      e += mag * mag;
+    }
+    energy[f] = Math.sqrt(e);
+    for (var c = 0; c < C; c++){
+      var cd = cands[c], s = 0;
+      for (h = 0; h < cd.bins.length; h++){
+        var bi = cd.bins[h], lo = bi | 0, v = spec[lo] > spec[lo + 1] ? spec[lo] : spec[lo + 1];
+        s += v * cd.wts[h];
+      }
+      sal[c] = s * cd.prior;
+    }
+    // keep the K strongest local peaks
+    for (c = 1; c < C - 1; c++){
+      var sv = sal[c];
+      if (sv <= sal[c - 1] || sv < sal[c + 1]) continue;
+      var base = f * K, slot = -1, minS = Infinity;
+      for (var q = 0; q < K; q++){
+        if (topC[base + q] < 0){ slot = q; break; }
+        if (topS[base + q] < minS){ minS = topS[base + q]; slot = q; }
+      }
+      if (topC[base + slot] < 0 || sv > topS[base + slot]){ topC[base + slot] = c; topS[base + slot] = sv; }
+    }
+    if (performance.now() - t0 > 24){ onProg(.85 * f / n); await tick(); t0 = performance.now(); }
+  }
+  // Viterbi: stay on a line unless another candidate is clearly stronger.
+  var LAMBDA = .12, JUMP_CAP = 1.4, cost = new Float64Array(n * K).fill(Infinity), back = new Int8Array(n * K).fill(-1);
+  for (f = 0; f < n; f++){
+    var fb = f * K, fmax = 0;
+    for (q = 0; q < K; q++) if (topC[fb + q] >= 0 && topS[fb + q] > fmax) fmax = topS[fb + q];
+    for (q = 0; q < K; q++){
+      if (topC[fb + q] < 0) continue;
+      var emit = -Math.log(topS[fb + q] / (fmax || 1) + 1e-3);
+      if (!f){ cost[fb + q] = emit; continue; }
+      var best = Infinity, arg = -1, pb = (f - 1) * K;
+      for (var p = 0; p < K; p++){
+        if (topC[pb + p] < 0 || cost[pb + p] === Infinity) continue;
+        var jump = Math.abs(cands[topC[pb + p]].m - cands[topC[fb + q]].m);
+        var tc = cost[pb + p] + Math.min(JUMP_CAP, LAMBDA * jump);
+        if (tc < best){ best = tc; arg = p; }
+      }
+      cost[fb + q] = (arg < 0 ? 0 : best) + emit;
+      back[fb + q] = arg;
+    }
+  }
+  var path = new Int8Array(n).fill(-1);
+  if (n){
+    var lastBest = Infinity, lb = (n - 1) * K;
+    for (q = 0; q < K; q++) if (cost[lb + q] < lastBest){ lastBest = cost[lb + q]; path[n - 1] = q; }
+    for (f = n - 1; f > 0; f--){
+      var bq = path[f] >= 0 ? back[f * K + path[f]] : -1;
+      if (bq < 0){   // the line broke (silence): pick up again from the previous frame's best state
+        var bc = Infinity, pf = (f - 1) * K;
+        for (q = 0; q < K; q++) if (topC[pf + q] >= 0 && cost[pf + q] < bc){ bc = cost[pf + q]; bq = q; }
+      }
+      path[f - 1] = bq;
+    }
+  }
+  // Voicing: the path's strength against the song's typical level.
+  var pathS = new Float32Array(n), midi = new Float32Array(n), vals = [];
+  for (f = 0; f < n; f++){
+    midi[f] = NaN;
+    if (path[f] < 0) continue;
+    pathS[f] = topS[f * K + path[f]];
+    vals.push(pathS[f]);
+  }
+  vals.sort(function(a, b){ return a - b; });
+  var ref = vals[Math.floor(vals.length * .75)] || 0, eVals = Array.prototype.slice.call(energy).sort(function(a, b){ return a - b; });
+  var eGate = (eVals[Math.floor(eVals.length * .9)] || 0) * .08;
+  for (f = 0; f < n; f++){
+    if (path[f] < 0 || pathS[f] < ref * .45 || energy[f] < eGate) continue;
+    var ci = topC[f * K + path[f]];
+    midi[f] = cands[ci].m;
+  }
+  onProg(1);
+  return {midi:midi, rms:pathS, gate:0, hop:hop / sr, n:n};
+}
+// Singers rarely leap an octave and straight back: fold such notes toward their neighbours.
+function fixOctaves(notes){
+  for (var i = 1; i < notes.length - 1; i++){
+    var a = notes[i - 1].midi, b = notes[i].midi, c = notes[i + 1].midi;
+    if (Math.abs(a - c) <= 7){
+      var mid = (a + c) / 2;
+      if (b - mid > 8) notes[i].midi -= 12;
+      else if (mid - b > 8) notes[i].midi += 12;
+    }
+  }
+  return notes;
+}
+var MIX_DETAIL = {
+  tidy:     {minDur:.2,  change:4, gap:3},
+  balanced: {minDur:.12, change:3, gap:2},
+  detailed: {minDur:.08, change:2, gap:2}
+};
+
 function median(a){ var b = a.slice().sort(function(p, q){ return p - q; }); return b[b.length >> 1]; }
 
 /* Frames → notes. A pitch change must persist for a few frames before it
@@ -1876,29 +2058,53 @@ async function analyse(buf, name){
   setImpState('working');
   setProg(.04, 'Preparing audio…');
   await tick();
+  IMP.trackMix = null;
   try {
     var prep = await prepare(buf);
-    IMP.track = await trackPitch(prep.x, prep.sr, function(p){
-      setProg(.08 + .86 * p, 'Listening for the melody… ' + Math.round(p * 100) + '%');
+    IMP.trackSolo = await trackPitch(prep.x, prep.sr, function(p){
+      setProg(.06 + .34 * p, 'Listening for a solo melody… ' + Math.round(p * 100) + '%');
     });
+    // How much of the audible audio had one clear pitch? Solo recordings sit well above half.
+    var tr = IMP.trackSolo, above = 0, voiced = 0;
+    for (var i = 0; i < tr.n; i++) if (tr.rms[i] >= tr.gate){ above++; if (!isNaN(tr.midi[i])) voiced++; }
+    IMP.voicedPct = above ? voiced / above : 0;
+    IMP.autoMode = IMP.voicedPct < .5 ? 'mix' : 'solo';
+    if (IMP.autoMode === 'mix') await runMixAnalysis(.4);
   } catch (err){
     console.warn(err);
     showImpError('Something went wrong while analysing the audio. Try a shorter clip, or a WAV or MP3 version of it.');
     return;
   }
+  setSource(IMP.autoMode);
   setProg(.97, 'Fitting notes to the home row…');
   await tick();
   buildTranscription();
   if (!IMP.notes.length){
-    showImpError('No clear melody came through. This works best with a single instrument or voice and little background sound — try a cleaner recording, or hum the tune into your phone’s voice recorder.');
+    showImpError(IMP.mode === 'mix'
+      ? 'No melody line stood out, even with the full-song analysis. Songs where the voice is buried under instruments are hard to transcribe — try a clip where the singing is clear, or hum the tune into your phone’s voice recorder.'
+      : 'No clear melody came through. This works best with a single instrument or voice and little background sound — try a cleaner recording, or hum the tune into your phone’s voice recorder.');
     return;
   }
   $('impName').value = (name || 'My recording').slice(0, 60);
   setImpState('done');
   requestAnimationFrame(drawRoll);
 }
+async function runMixAnalysis(from){
+  setProg(from, 'Full song detected — focusing on the lead vocal…');
+  await tick();
+  var stereo = await prepareStereo(IMP.buffer);
+  IMP.trackMix = await trackMelody(stereo.L, stereo.R, stereo.sr, function(p){
+    setProg(from + (.95 - from) * p, 'Following the lead vocal… ' + Math.round(p * 100) + '%');
+  });
+}
+function setSource(mode){
+  IMP.mode = mode;
+  IMP.track = mode === 'mix' ? IMP.trackMix : IMP.trackSolo;
+  Array.prototype.forEach.call(document.querySelectorAll('[data-src]'), function(o){ o.setAttribute('aria-pressed', String(o.getAttribute('data-src') === mode)); });
+}
 function buildTranscription(){
-  IMP.raw = segment(IMP.track, DETAIL[IMP.detail]);
+  IMP.raw = segment(IMP.track, (IMP.mode === 'mix' ? MIX_DETAIL : DETAIL)[IMP.detail]);
+  if (IMP.mode === 'mix') fixOctaves(IMP.raw);
   IMP.fit = fitImport(IMP.raw);
   IMP.notes = IMP.fit.ev;
   if (IMP.notes.length) renderStats();
@@ -1908,6 +2114,7 @@ function renderStats(){
   raw.forEach(function(n){ lo = Math.min(lo, n.midi); hi = Math.max(hi, n.midi); });
   var last = f.ev[f.ev.length - 1];
   var t = f.tune, rows = [
+    ['Analysed as', IMP.mode === 'mix' ? 'Full song · following the lead vocal (a rough sketch)' : 'Solo melody', 'wide'],
     ['Notes found', f.ev.length + (IMP.buffer.duration > MAX_SEC ? ' (first 2½ min)' : '')],
     ['Length', fmtTime(last.t + last.d)],
     ['Sounds like', f.key],
@@ -1968,7 +2175,7 @@ function startPreview(){
   src.onended = function(){ if (pv.src === src) stopPreview(); };
   src.start();
   var fac = Math.max(1, Math.round(AC.sampleRate / 16000));
-  pv = {src:src, g:g, an:an, fac:fac, sr:AC.sampleRate / fac, data:new Float32Array(an.fftSize),
+  pv = {src:src, g:g, an:an, fac:fac, sr:AC.sampleRate / fac, data:new Float32Array(an.fftSize), t0:AC.currentTime,
         ds:new Float32Array(Math.ceil(an.fftSize / fac) + 1), d:new Float32Array(400), lit:-1};
   $('hearBtn').querySelector('span').textContent = 'Stop';
   previewLoop();
@@ -1979,7 +2186,11 @@ function previewLoop(){
   var f = pv.fac, n = Math.floor(pv.data.length / f), s = 0, i, j, a;
   for (i = 0; i < n; i++){ a = 0; for (j = 0; j < f; j++) a += pv.data[i * f + j]; pv.ds[i] = a / f; s += pv.ds[i] * pv.ds[i]; }
   var W = Math.round(pv.sr * .024), tMax = Math.ceil(pv.sr / 70), r = null;
-  if (Math.sqrt(s / n) > .008 && W + tMax + 1 <= n) r = yin(pv.ds, 0, W, Math.floor(pv.sr / 1800), tMax, pv.d, pv.sr);
+  if (IMP.mode === 'mix'){
+    // In a full mix a live detector hears the whole band, so follow the vocal analysis in time instead.
+    var fr = Math.floor((AC.currentTime - pv.t0) / IMP.trackMix.hop);
+    if (fr >= 0 && fr < IMP.trackMix.n && !isNaN(IMP.trackMix.midi[fr])) r = {midi:IMP.trackMix.midi[fr]};
+  } else if (Math.sqrt(s / n) > .008 && W + tMax + 1 <= n) r = yin(pv.ds, 0, W, Math.floor(pv.sr / 1800), tMax, pv.d, pv.sr);
   var lit = -1;
   if (r){
     var heard = Math.round(r.midi), tune = IMP.fit.tune;
@@ -2071,6 +2282,26 @@ Array.prototype.forEach.call(document.querySelectorAll('[data-det]'), function(b
     if (!IMP.track) return;
     buildTranscription();
     if (IMP.notes.length) drawRoll();
+  });
+});
+// Solo / full-song switch; the full-song analysis runs the first time it is asked for.
+Array.prototype.forEach.call(document.querySelectorAll('[data-src]'), function(b){
+  b.addEventListener('click', async function(){
+    var mode = b.getAttribute('data-src');
+    if (mode === IMP.mode || !IMP.buffer) return;
+    stopPreview();
+    if (mode === 'mix' && !IMP.trackMix){
+      setImpState('working');
+      try { await runMixAnalysis(0); } catch (err){ console.warn(err); showImpError('The full-song analysis failed on this file.'); return; }
+    }
+    setSource(mode);
+    buildTranscription();
+    if (!IMP.notes.length){
+      showImpError(mode === 'mix' ? 'The full-song analysis found no melody line here.' : 'The solo analysis found no clear notes — this sounds like a full mix, so switch back to Full song.');
+      return;
+    }
+    setImpState('done');
+    requestAnimationFrame(drawRoll);
   });
 });
 
@@ -2232,7 +2463,7 @@ if (saved && /^(free|listen|learn)$/.test(saved.mode)) st.mode = saved.mode;
 if (/^#(perf|stress)$/.test(location.hash)){
   perfOn = true;
   $('perf').hidden = false;
-  window.__homerow = {IMP:IMP, segment:segment, DETAIL:DETAIL, LIBRARY:LIBRARY, buildTuning:buildTuning, yin:yin,
+  window.__homerow = {IMP:IMP, segment:segment, DETAIL:DETAIL, LIBRARY:LIBRARY, buildTuning:buildTuning, yin:yin, analyse:analyse,
     audio:function(){ return {state:AC && AC.state, ready:samplesReady, keys:sampleKeys, bufs:sampleBufs, gain:sampleGain}; }};
   if (location.hash === '#stress'){
     var sev = [], r = rng(7), k = 4;

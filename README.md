@@ -9,7 +9,9 @@ A nine-key piano trainer in a single file (`index.html`, about 1.5 MB). There's 
 - **Sound:** a real recorded grand piano (Salamander Grand Piano, a Yamaha C5), sampled every minor third. Each note is corrected to exact equal temperament at A4 = 440 Hz. Songs are played with a soft, normal or lively touch, and a softer touch also sounds darker, as on a real piano. There's a volume slider next to the mute button, and it remembers your setting.
 - **Modes:** Free play, Listen (auto-playing falling notes) and Learn (the song waits until you press the right key).
 - **Songs:** 13 public-domain melodies in three difficulty levels. Each is labelled "As written", "Simplified" or "Excerpt", and a tooltip explains what changed and how the keys are tuned.
-- **Import audio:** drop in an MP3, WAV or M4A you have the rights to use. It's transcribed in the browser (YIN pitch detection) at the pitch it was recorded, the keys are tuned to it, and it's saved on your device. Nothing is uploaded.
+- **Import audio:** drop in an MP3, WAV or M4A you have the rights to use. It's transcribed in the browser at the pitch it was recorded, the keys are tuned to it, and it's saved on your device. Nothing is uploaded. There are two analysis modes, picked automatically:
+  - **Solo melody** is for humming, whistling or a single instrument. It uses YIN pitch detection.
+  - **Full song** is for produced tracks with a band. It focuses on the centre of the stereo mix, where the lead vocal usually sits, scores each candidate pitch by its harmonics, and traces the smoothest singable line. The result is a rough sketch: instrumental sections can add extra notes.
 
 Key colours show which finger plays each key: pinky, ring, middle, index, and "index reach" for G and H.
 
