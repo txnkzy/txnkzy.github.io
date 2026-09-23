@@ -4,10 +4,12 @@
 
 A nine-key piano trainer in a single file (`index.html`). There's no build step and no backend; the only external files are two Google Fonts.
 
-- **Keys:** `A S D F G H J K L` play C4 D4 E4 F4 G4 A4 B4 C5 D5. No other keyboard keys play notes. `Space` plays or pauses.
+- **Keys:** `A S D F G H J K L` are nine fixed finger positions. Each song retunes them to its own notes, in its own key and range. Für Elise gets C4 E4 G♯4 A4 B4 C5 D5 D♯5 E5; Minuet in G gets its F♯s. Keys tuned to a sharp or flat are drawn dark, like black keys. No other keyboard keys play notes, and `Space` plays or pauses.
+- **Fitting songs to nine keys:** if a song uses more than nine different notes, the least-used ones fold into their nearest neighbour. If it uses fewer, the spare keys continue its scale, so every key still plays in tune in Free play.
+- **Sound:** each song picks one of five voices: concert grand, felt piano, honky-tonk upright, toy piano or harpsichord. There's a volume slider next to the mute button, and it remembers your setting.
 - **Modes:** Free play, Listen (auto-playing falling notes) and Learn (the song waits until you press the right key).
-- **Songs:** 13 public-domain melodies in three difficulty levels, each arranged to fit the nine keys. Songs that had to be changed are labelled "Simplified", and a tooltip explains what changed.
-- **Import audio:** drop in an MP3, WAV or M4A you have the rights to use. It's transcribed in the browser (YIN pitch detection), fitted onto the home row, and saved on your device. Nothing is uploaded.
+- **Songs:** 13 public-domain melodies in three difficulty levels. Each is labelled "As written", "Simplified" or "Excerpt", and a tooltip explains what changed and how the keys are tuned.
+- **Import audio:** drop in an MP3, WAV or M4A you have the rights to use. It's transcribed in the browser (YIN pitch detection) at the pitch it was recorded, the keys are tuned to it, and it's saved on your device. Nothing is uploaded.
 
 Key colours show which finger plays each key: pinky, ring, middle, index, and "index reach" for G and H.
 

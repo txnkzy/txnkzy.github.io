@@ -31,6 +31,7 @@
   --key-stroke:#1C1F3A;
   --key-base:#1C1F3A;
   --key-text:#1C1F3A;
+  --key-acc:#3B4274;
 
   --stage:#252A62;
   --stage-2:#2C3272;
@@ -65,6 +66,7 @@
     --key-face:#F3F3FA;
     --key-stroke:#0B0C1C;
     --key-base:#04050E;
+    --key-acc:#2D3263;
     --stage:#1A1E4A;
     --stage-2:#20255A;
     --stage-3:#292F6E;
@@ -86,6 +88,7 @@
   --key-face:#F3F3FA;
   --key-stroke:#0B0C1C;
   --key-base:#04050E;
+  --key-acc:#2D3263;
   --stage:#1A1E4A;
   --stage-2:#20255A;
   --stage-3:#292F6E;
@@ -273,21 +276,16 @@ button.chip{cursor:pointer}
 .key.hint::after{animation:pulse 1.05s ease-in-out infinite}
 .key.hint .kc{background:var(--c)}
 .key.ghost .face::before{opacity:.45}
+.key.acc .face{background:var(--key-acc);border-color:var(--key-stroke)}
+.key.acc .nm{color:#F3F3FA}
+.legend .tune{flex-basis:100%;justify-content:center;text-align:center;opacity:.8;font-variant-numeric:tabular-nums}
 @keyframes pulse{0%,100%{opacity:.95;transform:scale(1)}50%{opacity:.35;transform:scale(1.035)}}
-.bk{
-  position:absolute;top:0;z-index:2;pointer-events:none;
-  width:calc((100% - 8 * var(--gap)) / 9 * .52);height:52%;
-  left:calc((100% - 8 * var(--gap)) / 9 * var(--n) + var(--gap) * (var(--n) - 1) + var(--gap) / 2);
-  transform:translateX(-50%);background:var(--key-base);border:2px solid var(--key-stroke);border-top:0;border-radius:0 0 8px 8px;
-}
-.bk::after{content:"";position:absolute;left:22%;width:14%;top:6px;bottom:12px;border-radius:3px;background:rgba(255,255,255,.13)}
 .legend{
   display:flex;flex-wrap:wrap;justify-content:center;gap:5px 16px;max-width:880px;margin:11px auto 0;
   font-family:var(--mono);font-size:11px;letter-spacing:.05em;color:var(--case-ink);
 }
 .legend span{display:inline-flex;align-items:center;gap:6px}
 .legend i{width:11px;height:11px;border-radius:3px;background:var(--c);border:1.5px solid #05060F}
-.legend .hands{opacity:.75}
 
 /* ——— import dialog ——— */
 .dlg{
@@ -335,6 +333,7 @@ button.chip{cursor:pointer}
 .stats div{display:grid;gap:2px;align-content:start}
 .stats dt{font-family:var(--mono);font-size:10.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--ink-3)}
 .stats dd{margin:0;font-size:15px;line-height:1.3}
+.stats .wide{grid-column:1/-1}
 .roll{width:100%;height:118px;display:block;border-radius:12px;border:2px solid var(--key-stroke);background:var(--stage)}
 .row{display:flex;flex-wrap:wrap;align-items:center;gap:8px 12px}
 .text{flex:1;min-width:0;width:100%;height:40px;border:2px solid var(--stroke);border-radius:12px;background:var(--paper);color:var(--ink);font:inherit;font-size:15px;padding:0 12px}
@@ -366,14 +365,16 @@ button.chip{cursor:pointer}
   .select{width:100%;max-width:none}
   .g-io{order:4}
   .g-tempo{order:5}
-  .g-labels{order:6}
+  .g-vol{order:6}
+  .g-labels{order:7}
   .seg button{padding:7px 10px;font-size:13.5px}
   .btn.primary{width:38px;padding:0}
   .btn.primary .txt{display:none}
-  input[type=range]{width:74px}
+  input[type=range]{width:64px}
   .hud{left:6px;top:6px;max-width:calc(100% - 132px);padding:10px 12px}
   .title{font-size:21px}
-  .chip .long{display:none}
+  #chipVoice{display:none}
+  .by{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
   .by{font-size:12.5px}
   .coach{right:6px;top:6px;max-width:120px;padding:10px 12px}
   .coach-cap{width:48px;height:48px;font-size:22px;border-radius:12px}
@@ -385,7 +386,6 @@ button.chip{cursor:pointer}
   .key .nm{font-size:13px}
   .key .kc{min-width:24px;height:24px;font-size:12px;padding:0 4px;border-radius:6px}
   .legend{font-size:10px;gap:4px 10px}
-  .legend .hands{display:none}
 }
 @media (prefers-reduced-motion: reduce){
   .key.hint::after{animation:none;opacity:.95}
@@ -457,10 +457,15 @@ button.chip{cursor:pointer}
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round"><path d="M3 12h1.5M7 8v8M11 4.5v15M15 8.5v7M19 10.5v3"/></svg>
           <span class="txt">Import audio</span>
         </button>
+      </div>
+
+      <div class="group g-vol">
         <button class="btn icon" id="muteBtn" type="button" aria-label="Mute sound" aria-pressed="false" title="Sound on / off">
           <svg class="i-on" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 9.5h3.5L12 5.5v13l-4.5-4H4z" fill="currentColor"/><path d="M15.5 9a4.5 4.5 0 0 1 0 6M18.3 6.5a8 8 0 0 1 0 11"/></svg>
           <svg class="i-off" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 9.5h3.5L12 5.5v13l-4.5-4H4z" fill="currentColor"/><path d="M16 9.5l5 5M21 9.5l-5 5"/></svg>
         </button>
+        <input type="range" id="volume" min="0" max="100" step="1" value="75" aria-label="Volume">
+        <output id="volOut" for="volume">75%</output>
       </div>
     </div>
   </header>
@@ -475,10 +480,11 @@ button.chip{cursor:pointer}
       <div class="chips" id="hudChips">
         <span class="chip" id="chipLevel"></span>
         <button type="button" class="chip ghost chip-arr" id="chipArr" aria-describedby="arrTip">
-          <span id="chipArrText">Full melody</span>
+          <span id="chipArrText">As written</span>
           <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.2v4" stroke-linecap="round"/><circle cx="8" cy="4.9" r=".9" fill="currentColor" stroke="none"/></svg>
           <span class="tip" role="tooltip" id="arrTip"></span>
         </button>
+        <span class="chip ghost" id="chipVoice"></span>
         <button type="button" class="chip ghost" id="chipRemove" hidden>Remove import</button>
       </div>
       <div class="prog" id="prog"><i id="progBar"></i></div>
@@ -605,41 +611,152 @@ var FINGER = {
   reach:  {c:'#B46BE3', label:'index, reaching'}
 };
 var KEYS = [
-  {code:'KeyA', cap:'A', midi:60, hand:'left',  finger:'pinky'},
-  {code:'KeyS', cap:'S', midi:62, hand:'left',  finger:'ring'},
-  {code:'KeyD', cap:'D', midi:64, hand:'left',  finger:'middle'},
-  {code:'KeyF', cap:'F', midi:65, hand:'left',  finger:'index'},
-  {code:'KeyG', cap:'G', midi:67, hand:'left',  finger:'reach'},
-  {code:'KeyH', cap:'H', midi:69, hand:'right', finger:'reach'},
-  {code:'KeyJ', cap:'J', midi:71, hand:'right', finger:'index'},
-  {code:'KeyK', cap:'K', midi:72, hand:'right', finger:'middle'},
-  {code:'KeyL', cap:'L', midi:74, hand:'right', finger:'ring'}
+  {code:'KeyA', cap:'A', hand:'left',  finger:'pinky'},
+  {code:'KeyS', cap:'S', hand:'left',  finger:'ring'},
+  {code:'KeyD', cap:'D', hand:'left',  finger:'middle'},
+  {code:'KeyF', cap:'F', hand:'left',  finger:'index'},
+  {code:'KeyG', cap:'G', hand:'left',  finger:'reach'},
+  {code:'KeyH', cap:'H', hand:'right', finger:'reach'},
+  {code:'KeyJ', cap:'J', hand:'right', finger:'index'},
+  {code:'KeyK', cap:'K', hand:'right', finger:'middle'},
+  {code:'KeyL', cap:'L', hand:'right', finger:'ring'}
 ];
-var LOW = 60, HIGH = 74;
-var KEY_OF = {}, CODE_TO_KEY = {};
+var CODE_TO_KEY = {};
 KEYS.forEach(function(k, i){
   k.i = i;
-  k.name = nameOf(k.midi);
   k.color = FINGER[k.finger].c;
   k.fingerText = k.hand + ' ' + FINGER[k.finger].label;
-  KEY_OF[k.midi] = i;
   CODE_TO_KEY[k.code] = i;
 });
 
-/* Any pitch → the nearest home-row key. Out-of-range pitches clamp to the
-   nearest end; a sharp/flat between two keys follows the melody's direction
-   (coming from above → the lower key) so the contour survives. */
-function quantize(m, prev){
-  if (m <= LOW) return LOW;
-  if (m >= HIGH) return HIGH;
-  if (KEY_OF[m] !== undefined) return m;
-  if (prev == null) return m - 1;
-  return prev > m ? m - 1 : m + 1;
+/* ————————————————————————————————————————————————
+   Tuning. The nine keys are fixed fingers, but every song retunes
+   them to its own notes — its own key, register and accidentals.
+   ———————————————————————————————————————————————— */
+var FLAT_NAMES = ['C','D♭','D','E♭','E','F','G♭','G','A♭','A','B♭','B'];
+var MAJOR = [0, 2, 4, 5, 7, 9, 11];
+var FLAT_TONICS = {1:1, 3:1, 5:1, 6:1, 8:1, 10:1};
+function num(a, b){ return a - b; }
+function spell(m, flats){ return (flats ? FLAT_NAMES : NAMES)[pc(m)] + (Math.floor(m / 12) - 1); }
+function isBlackKey(m){ return MAJOR.indexOf(pc(m)) < 0; }
+
+// The major scale holding the most note-time; a tie goes to the key whose
+// tonic (or relative-minor tonic) is the song's final note.
+function estimateTonic(notes){
+  var w = new Float64Array(12), total = 0;
+  notes.forEach(function(n){ w[pc(n.midi)] += n.d; total += n.d; });
+  var last = notes.length ? pc(notes[notes.length - 1].midi) : 0, best = 0, bestScore = -Infinity;
+  for (var t = 0; t < 12; t++){
+    var s = 0;
+    for (var p = 0; p < 12; p++) if (w[p]) s += MAJOR.indexOf((p - t + 12) % 12) >= 0 ? w[p] : -1.5 * w[p];
+    if (last === t) s += total * .002; else if (last === (t + 9) % 12) s += total * .001;
+    if (s > bestScore){ bestScore = s; best = t; }
+  }
+  return best;
 }
 
+/* Nine keys for a set of notes.
+   · More than nine different pitches: the least-used one folds into its
+     nearest neighbour, repeatedly, until nine remain.
+   · Fewer than nine: spare keys continue the song's scale — gaps inside
+     its range first, then upward — so every key still plays in tune. */
+function buildTuning(notes){
+  if (!notes.length) notes = [60, 62, 64, 65, 67, 69, 71, 72, 74].map(function(m){ return {midi:m, d:1}; });
+  var weight = {}, remap = {}, i, m;
+  notes.forEach(function(n){ weight[n.midi] = (weight[n.midi] || 0) + Math.max(.05, n.d); });
+  var kept = Object.keys(weight).map(Number).sort(num);
+  kept.forEach(function(p){ remap[p] = p; });
+  var folded = 0;
+  // Least-used first; on a tie keep the range's ends and thin out the most crowded spot.
+  function foldScore(idx){
+    var p = kept[idx], below = idx ? p - kept[idx - 1] : 24, above = idx < kept.length - 1 ? kept[idx + 1] - p : 24;
+    return weight[p] + (below + above) * 1e-3;
+  }
+  while (kept.length > 9){
+    var li = 0;
+    for (i = 1; i < kept.length; i++) if (foldScore(i) < foldScore(li)) li = i;
+    m = kept[li];
+    var lo = kept[li - 1], hi = kept[li + 1], to;
+    if (lo === undefined) to = hi;
+    else if (hi === undefined) to = lo;
+    else if (m - lo !== hi - m) to = m - lo < hi - m ? lo : hi;
+    else to = weight[lo] >= weight[hi] ? lo : hi;
+    weight[to] += weight[m];
+    for (var key in remap) if (remap[key] === m) remap[key] = to;
+    kept.splice(li, 1);
+    folded++;
+  }
+  var tonic = estimateTonic(notes), flats = !!FLAT_TONICS[tonic], own = {};
+  kept.forEach(function(p){ own[pc(p)] = 1; });
+  function inScale(p){ return MAJOR.indexOf((pc(p) - tonic + 12) % 12) >= 0 || !!own[pc(p)]; }
+  var pitches = kept.slice(), used = kept.length;
+  if (pitches.length < 9){
+    var gaps = [];
+    for (m = pitches[0] + 1; m < pitches[pitches.length - 1]; m++) if (inScale(m) && pitches.indexOf(m) < 0) gaps.push(m);
+    if (pitches.length + gaps.length <= 9) pitches = pitches.concat(gaps);
+    else {
+      while (pitches.length < 9){
+        pitches.sort(num);
+        var widest = -1, pick = 0;
+        for (i = 0; i < pitches.length - 1; i++){
+          var mid = (pitches[i] + pitches[i + 1]) / 2, cand = -1, dist = 99;
+          for (m = pitches[i] + 1; m < pitches[i + 1]; m++) if (inScale(m) && Math.abs(m - mid) < dist){ dist = Math.abs(m - mid); cand = m; }
+          if (cand >= 0 && pitches[i + 1] - pitches[i] > widest){ widest = pitches[i + 1] - pitches[i]; pick = cand; }
+        }
+        if (widest < 0) break;
+        pitches.push(pick);
+      }
+    }
+    var top = Math.max.apply(null, pitches), bottom = Math.min.apply(null, pitches);
+    while (pitches.length < 9){
+      if (top < 96){ do { top++; } while (!inScale(top)); pitches.push(top); }
+      else { do { bottom--; } while (!inScale(bottom)); pitches.push(bottom); }
+    }
+  }
+  pitches.sort(num);
+  var keyOf = {};
+  pitches.forEach(function(p, idx){ keyOf[p] = idx; });
+  function nearest(p){
+    var b = pitches[0];
+    pitches.forEach(function(q){ if (Math.abs(q - p) < Math.abs(b - p)) b = q; });
+    return b;
+  }
+  return {
+    pitches:pitches, used:used, folded:folded, tonic:tonic, flats:flats,
+    names:pitches.map(function(p){ return spell(p, flats); }),
+    remap:function(p){ return remap[p] !== undefined ? remap[p] : nearest(p); },
+    keyOf:function(p){ return keyOf[p]; }
+  };
+}
+function keyName(t){ return spell(t, !!FLAT_TONICS[t]).replace(/-?\d+$/, '') + ' major'; }
+
 /* ————————————————————————————————————————————————
-   Song library — public-domain melodies, arranged for C4–D5.
-   "N:beats" tokens; "-" is a rest.
+   Voices — each song picks the keyboard that suits it.
+   ———————————————————————————————————————————————— */
+var HARPSI = [0];
+for (var hn = 1; hn <= 20; hn++) HARPSI.push(Math.abs(Math.sin(hn * Math.PI * .13)) / Math.pow(hn, .85) / .397);
+var VOICES = {
+  grand:{label:'Concert grand', amps:[0, 1, .52, .3, .19, .13, .085, .055, .035, .022, .014, .009],
+    gain:1, attack:.006, sustain:.45, drop:.09, decay:2.7, bright:14, body:3.2, floor:900, filterTau:.32,
+    detune:5, chorus:.5, hammer:.1, hammerMul:4, release:.12, wet:.22, dry:.85},
+  felt:{label:'Felt piano', amps:[0, 1, .36, .13, .05, .02, .01],
+    gain:1.3, attack:.018, sustain:.6, drop:.16, decay:3.8, bright:4.5, body:1.6, floor:420, filterTau:.55,
+    detune:3, chorus:.4, hammer:.03, hammerMul:1.5, release:.25, wet:.42, dry:.72},
+  upright:{label:'Honky-tonk upright', amps:[0, 1, .62, .45, .32, .24, .17, .11, .08, .055, .035, .02],
+    gain:.8, attack:.003, sustain:.35, drop:.07, decay:1.7, bright:22, body:5, floor:1400, filterTau:.22,
+    detune:17, chorus:.85, hammer:.16, hammerMul:5, release:.09, wet:.1, dry:.95},
+  toy:{label:'Toy piano', amps:[0, 1, .1, .04, .015],
+    gain:.95, attack:.002, sustain:.28, drop:.05, decay:1.3, bright:16, body:6, floor:2000, filterTau:.2,
+    detune:0, chorus:0, partials:[[2.76, .4, .22], [5.4, .17, .08], [8.93, .07, .045]],
+    hammer:.12, hammerMul:6, release:.1, wet:.18, dry:.9},
+  harpsichord:{label:'Harpsichord', amps:HARPSI, fixedVel:true,
+    gain:.62, attack:.002, sustain:.55, drop:.12, decay:1.9, bright:32, body:10, floor:2600, filterTau:.6,
+    detune:3, chorus:.55, hammer:.06, hammerMul:9, release:.05, wet:.2, dry:.85}
+};
+
+/* ————————————————————————————————————————————————
+   Song library — public-domain melodies in their own keys and registers.
+   "N:beats" tokens; "-" is a rest; `shift` transposes in semitones.
    ———————————————————————————————————————————————— */
 var LEVELS = {
   beginner:     {label:'Beginner',     pips:1, c:'#1FB5A6'},
@@ -652,114 +769,118 @@ var TW_A = 'C4:1 C4:1 G4:1 G4:1 A4:1 A4:1 G4:2 F4:1 F4:1 E4:1 E4:1 D4:1 D4:1 C4:
 var TW_B = 'G4:1 G4:1 F4:1 F4:1 E4:1 E4:1 D4:2 ';
 var ODE_A = 'E4:1 E4:1 F4:1 G4:1 G4:1 F4:1 E4:1 D4:1 C4:1 C4:1 D4:1 E4:1 ';
 var CAN_A = 'C4:2 D4:.5 F4:.5 E4:.5 D4:.5 G4:1 G4:1 G4:.5 A4:.5 E4:.5 F4:.5 D4:1 D4:1 D4:.5 F4:.5 E4:.5 D4:.5 ';
-var MIN_A = 'G4:1 C4:.5 D4:.5 E4:.5 F4:.5 G4:1 C4:1 C4:1 A4:1 F4:.5 G4:.5 A4:.5 B4:.5 C5:1 C4:1 C4:1 F4:1 G4:.5 F4:.5 E4:.5 D4:.5 ';
-var ELISE_A = 'D5:.25 C5:.25 D5:.25 C5:.25 D5:.25 A4:.25 C5:.25 B4:.25 G4:.5 -:.25 C4:.25 D4:.25 G4:.25 ';
+var MIN_A = 'D5:1 G4:.5 A4:.5 B4:.5 C5:.5 D5:1 G4:1 G4:1 E5:1 C5:.5 D5:.5 E5:.5 F#5:.5 G5:1 G4:1 G4:1 C5:1 D5:.5 C5:.5 B4:.5 A4:.5 ';
+var ELISE_A = 'E5:.25 D#5:.25 E5:.25 B4:.25 D5:.25 C5:.25 A4:.5 -:.25 C4:.25 E4:.25 A4:.25 ';
 
 var LIBRARY = [
-  { id:'hot-cross-buns', title:'Hot Cross Buns', level:'beginner', bpm:96,
+  { id:'hot-cross-buns', title:'Hot Cross Buns', level:'beginner', bpm:96, voice:'upright',
     by:'Traditional · English street cry, 18th century',
-    arr:{simplified:false, note:'Played exactly as sung. Only three keys — D, S and A — so it is the gentlest place to start.'},
+    arr:{label:'As written', note:'Played exactly as sung, in C, on a jaunty upright.'},
     src:'E4:1 D4:1 C4:2 E4:1 D4:1 C4:2 C4:.5 C4:.5 C4:.5 C4:.5 D4:.5 D4:.5 D4:.5 D4:.5 E4:1 D4:1 C4:2' },
 
-  { id:'mary', title:'Mary Had a Little Lamb', level:'beginner', bpm:104,
+  { id:'mary', title:'Mary Had a Little Lamb', level:'beginner', bpm:104, voice:'toy', shift:12,
     by:'Traditional American · words by Sarah Josepha Hale, 1830',
-    arr:{simplified:false, note:'Full melody in its usual key of C. Nothing needed changing.'},
+    arr:{label:'As written', note:'Full melody in C, an octave up on a toy piano.'},
     src:'E4:1 D4:1 C4:1 D4:1 E4:1 E4:1 E4:2 D4:1 D4:1 D4:2 E4:1 G4:1 G4:2 E4:1 D4:1 C4:1 D4:1 E4:1 E4:1 E4:1 E4:1 D4:1 D4:1 E4:1 D4:1 C4:4' },
 
-  { id:'twinkle', title:'Twinkle, Twinkle, Little Star', level:'beginner', bpm:100,
+  { id:'twinkle', title:'Twinkle, Twinkle, Little Star', level:'beginner', bpm:100, voice:'toy', shift:12,
     by:'Traditional · French melody “Ah! vous dirai-je, maman”, 1761',
-    arr:{simplified:false, note:'Full melody in C. It never goes above A, so it fits the home row as written.'},
+    arr:{label:'As written', note:'Full melody in C, pitched high and bell-like on a toy piano.'},
     src: TW_A + TW_B + TW_B + TW_A },
 
-  { id:'london-bridge', title:'London Bridge Is Falling Down', level:'beginner', bpm:108,
+  { id:'london-bridge', title:'London Bridge Is Falling Down', level:'beginner', bpm:108, voice:'upright', shift:2,
     by:'Traditional · English nursery rhyme, 17th century',
-    arr:{simplified:false, note:'Full melody in C, as it is usually sung.'},
+    arr:{label:'As written', note:'Full melody, in D major.'},
     src:'G4:1.5 A4:.5 G4:1 F4:1 E4:1 F4:1 G4:2 D4:1 E4:1 F4:2 E4:1 F4:1 G4:2 G4:1.5 A4:.5 G4:1 F4:1 E4:1 F4:1 G4:2 D4:2 G4:2 E4:1 C4:3' },
 
-  { id:'ode-to-joy', title:'Ode to Joy', level:'beginner', bpm:112,
+  { id:'ode-to-joy', title:'Ode to Joy', level:'beginner', bpm:112, voice:'grand', shift:2,
     by:'Ludwig van Beethoven · Symphony No. 9, 1824',
-    arr:{simplified:true, note:'Simplified: the third phrase ends on a low G that sits below the home row, so it is raised to C, the nearest key. Everything else is as written.'},
+    arr:{label:'As written', note:'The finale’s main theme in D major, as in the symphony — including the drop to low A.'},
     src: ODE_A + 'E4:1.5 D4:.5 D4:2 ' + ODE_A + 'D4:1.5 C4:.5 C4:2 ' +
-         'D4:1 D4:1 E4:1 C4:1 D4:1 E4:.5 F4:.5 E4:1 C4:1 D4:1 E4:.5 F4:.5 E4:1 D4:1 C4:1 D4:1 C4:2 ' +
+         'D4:1 D4:1 E4:1 C4:1 D4:1 E4:.5 F4:.5 E4:1 C4:1 D4:1 E4:.5 F4:.5 E4:1 D4:1 C4:1 D4:1 G3:2 ' +
          ODE_A + 'D4:1.5 C4:.5 C4:2' },
 
-  { id:'frere-jacques', title:'Frère Jacques', level:'intermediate', bpm:120,
+  { id:'frere-jacques', title:'Frère Jacques', level:'intermediate', bpm:120, voice:'toy', shift:12,
     by:'Traditional · French round, c. 1780',
-    arr:{simplified:true, note:'Simplified: “Ding, dang, dong” normally drops below middle C. Here it moves up an octave (C–G–C at the top of the row) so the bell pattern keeps its shape.'},
+    arr:{label:'As written', note:'The whole round, bells and all: “ding, dang, dong” drops to the low G as sung.'},
     src:'C4:1 D4:1 E4:1 C4:1 C4:1 D4:1 E4:1 C4:1 E4:1 F4:1 G4:2 E4:1 F4:1 G4:2 ' +
-        'G4:.5 A4:.5 G4:.5 F4:.5 E4:1 C4:1 G4:.5 A4:.5 G4:.5 F4:.5 E4:1 C4:1 C5:1 G4:1 C5:2 C5:1 G4:1 C5:2' },
+        'G4:.5 A4:.5 G4:.5 F4:.5 E4:1 C4:1 G4:.5 A4:.5 G4:.5 F4:.5 E4:1 C4:1 C4:1 G3:1 C4:2 C4:1 G3:1 C4:2' },
 
-  { id:'jingle-bells', title:'Jingle Bells', level:'intermediate', bpm:126,
+  { id:'jingle-bells', title:'Jingle Bells', level:'intermediate', bpm:126, voice:'upright', shift:7,
     by:'James Lord Pierpont · 1857',
-    arr:{simplified:true, note:'Simplified: chorus only — the verse is left out. The chorus itself is as written, in C.'},
+    arr:{label:'Excerpt', note:'The chorus only, in G major, on a bright honky-tonk upright. The verse is left out.'},
     src:'E4:1 E4:1 E4:2 E4:1 E4:1 E4:2 E4:1 G4:1 C4:1.5 D4:.5 E4:4 ' +
         'F4:1 F4:1 F4:1.5 F4:.5 F4:1 E4:1 E4:1 E4:.5 E4:.5 E4:1 D4:1 D4:1 E4:1 D4:2 G4:2 ' +
         'E4:1 E4:1 E4:2 E4:1 E4:1 E4:2 E4:1 G4:1 C4:1.5 D4:.5 E4:4 ' +
         'F4:1 F4:1 F4:1.5 F4:.5 F4:1 E4:1 E4:1 E4:.5 E4:.5 G4:1 G4:1 F4:1 D4:1 C4:4' },
 
-  { id:'amazing-grace', title:'Amazing Grace', level:'intermediate', bpm:84,
+  { id:'amazing-grace', title:'Amazing Grace', level:'intermediate', bpm:80, voice:'felt', shift:2,
     by:'Tune “New Britain”, 1829 · words by John Newton, 1779',
-    arr:{simplified:true, note:'Simplified: set in F, where this pentatonic tune needs no black keys. Sung slides are trimmed to one or two notes per syllable.'},
+    arr:{label:'Simplified', note:'In G major, the usual hymnal key, on a soft felt piano. Sung slides are trimmed to one or two notes per syllable.'},
     src:'C4:1 F4:2 A4:.5 F4:.5 A4:2 G4:1 F4:2 D4:1 C4:2 C4:1 F4:2 A4:.5 F4:.5 A4:2 G4:1 C5:3 ' +
         'A4:1 C5:2 A4:.5 C5:.5 A4:2 F4:1 C4:2 D4:1 F4:2 C4:1 F4:2 A4:.5 F4:.5 A4:2 G4:1 F4:3' },
 
-  { id:'brahms-lullaby', title:'Lullaby (Wiegenlied)', level:'intermediate', bpm:88,
+  { id:'brahms-lullaby', title:'Lullaby (Wiegenlied)', level:'intermediate', bpm:84, voice:'felt', shift:3,
     by:'Johannes Brahms · Op. 49 No. 4, 1868',
-    arr:{simplified:true, note:'Simplified: melody only, set in C. The rocking piano accompaniment is left out.'},
+    arr:{label:'As written', note:'The melody in E♭ major, Brahms’s own key, on a hushed felt piano. The accompaniment is left out.'},
     src:'E4:.5 E4:.5 G4:2 E4:.5 E4:.5 G4:2 E4:.5 G4:.5 C5:1 B4:1.5 A4:.5 A4:1 G4:1 D4:.5 E4:.5 ' +
         'F4:1 D4:1 D4:.5 E4:.5 F4:2 D4:.5 F4:.5 B4:.5 A4:.5 G4:1 B4:1 C5:2 C4:.5 C4:.5 ' +
         'C5:2 A4:.5 F4:.5 G4:2 E4:.5 C4:.5 F4:1 G4:1 A4:1 G4:2 C4:.5 C4:.5 ' +
         'C5:2 A4:.5 F4:.5 G4:2 E4:.5 C4:.5 F4:1 E4:1 D4:1 C4:3' },
 
-  { id:'scarborough-fair', title:'Scarborough Fair', level:'intermediate', bpm:100,
+  { id:'scarborough-fair', title:'Scarborough Fair', level:'intermediate', bpm:96, voice:'harpsichord', key:'D Dorian',
     by:'Traditional · English ballad, medieval origins',
-    arr:{simplified:true, note:'Simplified: ornaments smoothed out. This Dorian tune spans exactly C to D — the whole home row — so the notes themselves are as usually sung.'},
+    arr:{label:'Simplified', note:'In D Dorian, plucked like a lute on harpsichord. Ornaments are smoothed out.'},
     src:'D4:2 D4:1 A4:2 A4:1 E4:1.5 F4:.5 E4:1 D4:3 A4:1 C5:2 D5:2 C5:1 A4:1 B4:1 G4:1 A4:3 ' +
         '-:2 D5:1 D5:2 D5:1 C5:2 A4:1 A4:1 G4:1 F4:1 E4:1 C4:2 D4:1 A4:2 G4:2 F4:1 E4:1 D4:1 C4:1 D4:3' },
 
-  { id:'minuet-in-g', title:'Minuet in G', level:'advanced', bpm:108,
+  { id:'minuet-in-g', title:'Minuet in G', level:'advanced', bpm:108, voice:'harpsichord',
     by:'Christian Petzold (long credited to J. S. Bach) · Anna Magdalena Notebook, 1725',
-    arr:{simplified:true, note:'Simplified: transposed from G major to C, so it reads “Minuet in G” played in C. Two notes that dip below middle C are folded into the C beside them.'},
-    src: MIN_A + 'E4:1 F4:.5 E4:.5 D4:.5 C4:.5 C4:1.5 D4:.5 E4:.5 C4:.5 D4:3 ' +
-         MIN_A + 'E4:1 F4:.5 E4:.5 D4:.5 C4:.5 D4:1 E4:.5 D4:.5 C4:4' },
+    arr:{label:'Excerpt', note:'The first section in its original key of G, F♯s included, on the harpsichord it was written for.'},
+    src: MIN_A + 'B4:1 C5:.5 B4:.5 A4:.5 G4:.5 F#4:1 G4:.5 A4:.5 B4:.5 G4:.5 A4:3 ' +
+         MIN_A + 'B4:1 C5:.5 B4:.5 A4:.5 G4:.5 A4:1 B4:.5 A4:.5 G4:.5 F#4:.5 G4:3' },
 
-  { id:'can-can', title:'Can-Can (Galop infernal)', level:'advanced', bpm:138,
+  { id:'can-can', title:'Can-Can (Galop infernal)', level:'advanced', bpm:138, voice:'upright', shift:12,
     by:'Jacques Offenbach · Orpheus in the Underworld, 1858',
-    arr:{simplified:true, note:'Simplified: just the galop theme, twice, in C. Accompaniment and repeats are left out; the speed is the challenge.'},
+    arr:{label:'Excerpt', note:'The galop theme, twice, pitched up and played on a rowdy honky-tonk upright. The speed is the challenge.'},
     src: CAN_A + 'C4:.5 C5:.5 B4:.5 A4:.5 G4:.5 F4:.5 E4:.5 D4:.5 ' + CAN_A + 'C4:.5 G4:.5 D4:.5 E4:.5 C4:2' },
 
-  { id:'fur-elise', title:'Für Elise', level:'advanced', bpm:66,
+  { id:'fur-elise', title:'Für Elise', level:'advanced', bpm:66, voice:'grand', key:'A minor',
     by:'Ludwig van Beethoven · Bagatelle No. 25, 1810 · the opening',
-    arr:{simplified:true, note:'Simplified: shifted down one scale step so the high E fits under D. With no black keys, the famous E–D♯ trill becomes a whole-step D–C, and the low left-hand notes start on C.'},
-    src:'D5:.25 C5:.25 ' + ELISE_A + 'A4:.5 -:.25 D4:.25 F4:.25 A4:.25 B4:.5 -:.25 D4:.25 D5:.25 C5:.25 ' +
-        ELISE_A + 'A4:.5 -:.25 D4:.25 B4:.25 A4:.25 G4:1.5' }
+    arr:{label:'Excerpt', note:'The opening in its original key of A minor, E–D♯ trill and all, on a concert grand.'},
+    src:'E5:.25 D#5:.25 ' + ELISE_A + 'B4:.5 -:.25 E4:.25 G#4:.25 B4:.25 C5:.5 -:.25 E4:.25 E5:.25 D#5:.25 ' +
+        ELISE_A + 'B4:.5 -:.25 E4:.25 C5:.25 B4:.25 A4:1.5' }
 ];
 
-/* Parse, quantize, and index a note string. Notes pushed onto a key they
-   were not written for are tied into an identical neighbour rather than
-   re-struck, so simplification never adds stutters. */
-function compile(src){
-  var ev = [], t = 0, prev = null, moved = 0;
+function compile(src, shift){
+  var ev = [], t = 0;
   src.trim().split(/\s+/).forEach(function(tok){
     if (tok === '|') return;
     var p = tok.split(':'), d = parseFloat(p[1]);
-    if (p[0] !== '-'){
-      var m = parseNote(p[0]), q = quantize(m, prev), last = ev[ev.length - 1];
-      if (q !== m){
-        moved++;
-        if (last && last.m === q && Math.abs(last.t + last.d - t) < 1e-6){ last.d += d; t += d; prev = q; return; }
-      }
-      ev.push({t:t, d:d, m:q, k:KEY_OF[q]});
-      prev = q;
-    }
+    if (p[0] !== '-') ev.push({t:t, d:d, m:parseNote(p[0]) + (shift || 0)});
     t += d;
   });
-  return {ev:ev, len:t, moved:moved};
+  return {ev:ev, len:t};
+}
+/* Tune the keys for a song and index its notes. A note folded onto the
+   pitch it follows is tied into it rather than re-struck. */
+function finalizeSong(s, ev){
+  s.tune = buildTuning(ev.map(function(e){ return {midi:e.m, d:e.d}; }));
+  var out = [];
+  ev.forEach(function(e){
+    var m = s.tune.remap(e.m), last = out[out.length - 1];
+    if (m !== e.m && last && last.m === m && Math.abs(last.t + last.d - e.t) < .03){ last.d = e.t + e.d - last.t; return; }
+    out.push({t:e.t, d:e.d, m:m, k:s.tune.keyOf(m)});
+  });
+  s.ev = out;
+  var l = out[out.length - 1];
+  if (!s.len) s.len = l ? l.t + l.d : 0;
+  if (!s.key) s.key = keyName(s.tune.tonic);
 }
 LIBRARY.forEach(function(s){
-  var c = compile(s.src);
-  s.ev = c.ev; s.len = c.len;
-  if (c.moved) console.info('[homerow] ' + s.title + ': ' + c.moved + ' note(s) quantized into range');
+  var c = compile(s.src, s.shift);
+  s.len = c.len;
+  finalizeSong(s, c.ev);
 });
 
 /* ————————————————————————————————————————————————
@@ -767,7 +888,7 @@ LIBRARY.forEach(function(s){
    ———————————————————————————————————————————————— */
 var PREF_KEY = 'homerow-prefs-v1', IMPORT_KEY = 'homerow-imports-v1';
 var st = {
-  mode:'listen', song:LIBRARY[2], t:0, playing:true, tempo:1, labels:'keys', muted:false,
+  mode:'listen', song:LIBRARY[2], t:0, playing:true, tempo:1, labels:'keys', muted:false, volume:.75,
   idx:0, li:0, waiting:null, hits:0, firstTry:true, misses:0, done:false, loopAt:0, drawFrom:0
 };
 var IMPORTS = [];
@@ -777,10 +898,11 @@ if (saved){
   if (/^(off|notes|keys)$/.test(saved.labels)) st.labels = saved.labels;
   if (saved.tempo >= .4 && saved.tempo <= 1.5) st.tempo = saved.tempo;
   if (typeof saved.muted === 'boolean') st.muted = saved.muted;
+  if (saved.volume >= 0 && saved.volume <= 1) st.volume = saved.volume;
 }
 function savePrefs(){
   try {
-    localStorage.setItem(PREF_KEY, JSON.stringify({labels:st.labels, tempo:st.tempo, muted:st.muted, mode:st.mode, song:st.song.id}));
+    localStorage.setItem(PREF_KEY, JSON.stringify({labels:st.labels, tempo:st.tempo, muted:st.muted, volume:st.volume, mode:st.mode, song:st.song.id}));
   } catch (e) {}
 }
 function loadImports(){
@@ -790,17 +912,18 @@ function loadImports(){
   raw.forEach(function(s){
     if (!s || !Array.isArray(s.ev) || !s.ev.length) return;
     var ev = [];
-    s.ev.forEach(function(a){ if (KEY_OF[a[2]] !== undefined) ev.push({t:a[0], d:a[1], m:a[2], k:KEY_OF[a[2]]}); });
+    s.ev.forEach(function(a){ if (isFinite(a[0]) && isFinite(a[1]) && a[2] >= 21 && a[2] <= 108) ev.push({t:+a[0], d:+a[1], m:Math.round(a[2])}); });
     if (!ev.length) return;
-    var last = ev[ev.length - 1];
-    IMPORTS.push({id:s.id, title:String(s.title || 'My recording').slice(0, 60), by:s.by || 'Your recording · auto-transcribed',
-      level:'imported', bpm:60, arr:{simplified:true, note:String(s.note || '')}, ev:ev, len:last.t + last.d});
+    var song = {id:s.id, title:String(s.title || 'My recording').slice(0, 60), by:s.by || 'Your recording · auto-transcribed',
+      level:'imported', bpm:60, voice:VOICES[s.voice] ? s.voice : 'grand', arr:{label:'Transcribed', note:String(s.note || '')}};
+    finalizeSong(song, ev);
+    IMPORTS.push(song);
   });
 }
 function saveImports(){
   try {
     localStorage.setItem(IMPORT_KEY, JSON.stringify(IMPORTS.map(function(s){
-      return {id:s.id, title:s.title, by:s.by, note:s.arr.note, ev:s.ev.map(function(e){ return [e.t, e.d, e.m]; })};
+      return {id:s.id, title:s.title, by:s.by, note:s.arr.note, voice:s.voice, ev:s.ev.map(function(e){ return [e.t, e.d, e.m]; })};
     })));
   } catch (e) {}
 }
@@ -816,8 +939,13 @@ function findSong(id){
    on a piano-like harmonic table, a closing low-pass, a hammer tick,
    and a short generated room.
    ———————————————————————————————————————————————— */
-var AC = null, master = null, dryBus = null, wetBus = null, wave = null, hammer = null;
+var AC = null, master = null, dryBus = null, wetBus = null, hammer = null;
 var voices = {}, voiceOrder = [], MAX_VOICES = 14;
+var VOICE = VOICES.grand, waves = {};
+
+// Perceptual volume: the slider is roughly even in loudness across its travel.
+function volumeGain(){ return st.muted ? 0 : 1.1 * st.volume * st.volume; }
+function applyVolume(){ if (master) master.gain.setTargetAtTime(volumeGain(), AC.currentTime, .03); }
 
 function initAudio(){
   if (AC){ if (AC.state === 'suspended') AC.resume(); paintGate(); return true; }
@@ -826,15 +954,11 @@ function initAudio(){
   try { AC = new C({latencyHint:'interactive'}); } catch (e) { try { AC = new C(); } catch (e2) { AC = null; return false; } }
   var comp = AC.createDynamicsCompressor();
   comp.threshold.value = -14; comp.knee.value = 12; comp.ratio.value = 3.5; comp.attack.value = .003; comp.release.value = .2;
-  master = AC.createGain(); master.gain.value = st.muted ? 0 : .9;
-  dryBus = AC.createGain(); dryBus.gain.value = .85;
-  wetBus = AC.createGain(); wetBus.gain.value = .2;
+  master = AC.createGain(); master.gain.value = volumeGain();
+  dryBus = AC.createGain(); dryBus.gain.value = VOICE.dry;
+  wetBus = AC.createGain(); wetBus.gain.value = VOICE.wet;
   var verb = AC.createConvolver(); verb.buffer = makeRoom(1.8);
   dryBus.connect(comp); wetBus.connect(verb); verb.connect(comp); comp.connect(master); master.connect(AC.destination);
-
-  var amps = [0, 1, .52, .3, .19, .13, .085, .055, .035, .022, .014, .009];
-  var real = new Float32Array(amps.length), imag = new Float32Array(amps);
-  wave = AC.createPeriodicWave(real, imag);
 
   var len = Math.floor(AC.sampleRate * .03);
   hammer = AC.createBuffer(1, len, AC.sampleRate);
@@ -858,36 +982,61 @@ function makeRoom(sec){
   }
   return buf;
 }
+function setVoice(name){
+  VOICE = VOICES[name] || VOICES.grand;
+  if (!AC) return;
+  var t = AC.currentTime;
+  wetBus.gain.setTargetAtTime(VOICE.wet, t, .05);
+  dryBus.gain.setTargetAtTime(VOICE.dry, t, .05);
+}
+function waveFor(V){
+  var key = V.label;
+  if (!waves[key]) waves[key] = AC.createPeriodicWave(new Float32Array(V.amps.length), new Float32Array(V.amps));
+  return waves[key];
+}
 function noteOn(m, vel){
   if (!AC || st.muted || AC.state !== 'running') return;
   noteOff(m, true);
-  var t = AC.currentTime, f = 440 * Math.pow(2, (m - 69) / 12);
-  var decay = 2.7 - (m - LOW) / (HIGH - LOW) * .9;
-  var peak = .3 * vel;
+  var V = VOICE, t = AC.currentTime, f = 440 * Math.pow(2, (m - 69) / 12);
+  if (V.fixedVel) vel = .85;
+  var decay = V.decay * Math.max(.4, 1 - (m - 60) / 40);   // higher strings ring for less time
+  var peak = .3 * vel * V.gain;
   var out = AC.createGain();
   out.gain.setValueAtTime(.0001, t);
-  out.gain.linearRampToValueAtTime(peak, t + .006);
-  out.gain.setTargetAtTime(peak * .45, t + .006, .09);
+  out.gain.linearRampToValueAtTime(peak, t + V.attack);
+  out.gain.setTargetAtTime(peak * V.sustain, t + V.attack, V.drop);
   out.gain.setTargetAtTime(0, t + .22, decay / 3.2);
 
   var lp = AC.createBiquadFilter(); lp.type = 'lowpass'; lp.Q.value = .6;
-  lp.frequency.setValueAtTime(Math.min(12000, f * 14), t);
-  lp.frequency.setTargetAtTime(Math.max(900, f * 3.2), t + .01, .32);
+  lp.frequency.setValueAtTime(Math.min(15000, f * V.bright), t);
+  lp.frequency.setTargetAtTime(Math.min(15000, Math.max(V.floor, f * V.body)), t + .01, V.filterTau);
 
+  var wave = waveFor(V), oscs = [];
   var o1 = AC.createOscillator(); o1.setPeriodicWave(wave); o1.frequency.value = f;
-  var o2 = AC.createOscillator(); o2.setPeriodicWave(wave); o2.frequency.value = f; o2.detune.value = 5;
-  var g2 = AC.createGain(); g2.gain.value = .5;
-  o1.connect(lp); o2.connect(g2); g2.connect(lp);
+  o1.connect(lp); oscs.push(o1);
+  if (V.chorus){
+    var o2 = AC.createOscillator(); o2.setPeriodicWave(wave); o2.frequency.value = f; o2.detune.value = V.detune;
+    var g2 = AC.createGain(); g2.gain.value = V.chorus;
+    o2.connect(g2); g2.connect(lp); oscs.push(o2);
+  }
+  // Inharmonic partials (toy piano tines) that die away fast.
+  (V.partials || []).forEach(function(p){
+    if (f * p[0] > 16000) return;
+    var o = AC.createOscillator(); o.type = 'sine'; o.frequency.value = f * p[0];
+    var g = AC.createGain();
+    g.gain.setValueAtTime(p[1], t); g.gain.setTargetAtTime(0, t, p[2]);
+    o.connect(g); g.connect(lp); oscs.push(o);
+  });
 
   var ns = AC.createBufferSource(); ns.buffer = hammer;
-  var bp = AC.createBiquadFilter(); bp.type = 'bandpass'; bp.frequency.value = Math.min(4200, f * 4); bp.Q.value = 1.1;
-  var ng = AC.createGain(); ng.gain.value = .1 * vel;
+  var bp = AC.createBiquadFilter(); bp.type = 'bandpass'; bp.frequency.value = Math.min(6000, Math.max(700, f * V.hammerMul)); bp.Q.value = 1.1;
+  var ng = AC.createGain(); ng.gain.value = V.hammer * vel;
   ns.connect(bp); bp.connect(ng); ng.connect(out); ns.start(t);
 
   lp.connect(out); out.connect(dryBus); out.connect(wetBus);
   var end = t + decay * 1.9;
-  o1.start(t); o2.start(t); o1.stop(end); o2.stop(end);
-  var v = {m:m, out:out, oscs:[o1, o2]};
+  oscs.forEach(function(o){ o.start(t); o.stop(end); });
+  var v = {m:m, out:out, oscs:oscs, release:V.release};
   o1.onended = function(){
     out.disconnect();
     var at = voiceOrder.indexOf(v); if (at >= 0) voiceOrder.splice(at, 1);
@@ -899,12 +1048,12 @@ function noteOn(m, vel){
 }
 function damp(v, quick){
   if (!v || !AC) return;
-  var t = AC.currentTime;
+  var t = AC.currentTime, tau = quick ? .012 : v.release;
   try {
     v.out.gain.cancelScheduledValues(t);
     v.out.gain.setValueAtTime(v.out.gain.value, t);
-    v.out.gain.setTargetAtTime(0, t, quick ? .012 : .12);
-    v.oscs.forEach(function(o){ try { o.stop(t + (quick ? .09 : .8)); } catch (e) {} });
+    v.out.gain.setTargetAtTime(0, t, tau);
+    v.oscs.forEach(function(o){ try { o.stop(t + (quick ? .09 : tau * 7)); } catch (e) {} });
   } catch (e) {}
 }
 function noteOff(m, quick){
@@ -918,42 +1067,46 @@ function noteOff(m, quick){
    Keyboard (DOM)
    ———————————————————————————————————————————————— */
 var keysEl = $('keys'), stageEl = $('stage'), sel = $('song');
-var keyEls = [];
+var keyEls = [], nmEls = [];
+var TUNE = LIBRARY[2].tune;
 function buildKeys(){
   KEYS.forEach(function(k){
     var el = document.createElement('div');
     el.className = 'key';
     el.setAttribute('data-i', k.i);
     el.setAttribute('role', 'button');
-    el.setAttribute('aria-label', k.name + ', computer key ' + k.cap + ', ' + k.fingerText + ' finger');
-    el.title = k.name + ' · key ' + k.cap + ' · ' + k.fingerText;
     el.style.setProperty('--c', k.color);
     el.innerHTML = '<span class="base"></span><span class="face"><span class="band"></span>' +
-      '<span class="nm">' + k.name.slice(0, -1) + '<small>' + k.name.slice(-1) + '</small></span>' +
-      '<span class="kc">' + k.cap + '</span></span>';
+      '<span class="nm"></span><span class="kc">' + k.cap + '</span></span>';
     keysEl.appendChild(el);
     keyEls.push(el);
+    nmEls.push(el.querySelector('.nm'));
   });
-  // Decorative black keys: the home row plays only the white notes of C major.
-  [1, 2, 4, 5, 6, 8].forEach(function(n){
-    var b = document.createElement('span');
-    b.className = 'bk';
-    b.style.setProperty('--n', n);
-    b.setAttribute('aria-hidden', 'true');
-    keysEl.appendChild(b);
-  });
-  var lg = $('legend'), html = '';
+  var html = '';
   ['pinky', 'ring', 'middle', 'index', 'reach'].forEach(function(f){
     html += '<span><i style="--c:' + FINGER[f].c + '"></i>' + (f === 'reach' ? 'index reach' : f) + '</span>';
   });
-  lg.innerHTML = html + '<span class="hands">left hand A–G · right hand H–L</span>';
+  $('legend').innerHTML = html + '<span class="tune" id="tuneLine"></span>';
+}
+// Retune the nine keys (and swap the instrument) for the current song.
+function applyTuning(){
+  TUNE = st.song.tune;
+  KEYS.forEach(function(k, i){
+    var name = TUNE.names[i], el = keyEls[i];
+    nmEls[i].innerHTML = name.replace(/(-?\d+)$/, '<small>$1</small>');
+    el.classList.toggle('acc', isBlackKey(TUNE.pitches[i]));
+    el.setAttribute('aria-label', name + ', computer key ' + k.cap + ', ' + k.fingerText + ' finger');
+    el.title = name + ' · key ' + k.cap + ' · ' + k.fingerText;
+  });
+  $('tuneLine').textContent = st.song.title + ' · ' + st.song.key + ' · ' + VOICES[st.song.voice || 'grand'].label + ' — ' + TUNE.names.join('  ');
+  setVoice(st.song.voice);
 }
 
 /* ————————————————————————————————————————————————
    Press / release — every source (mouse pointer, key, song) is tracked
    so a key stays down until the last source lets go.
    ———————————————————————————————————————————————— */
-var held = [], keyGlow = new Float32Array(9);
+var held = [], heldPitch = [], keyGlow = new Float32Array(9);
 function press(i, src, vel){
   var h = held[i] || (held[i] = {});
   var was = Object.keys(h).length > 0;
@@ -961,7 +1114,8 @@ function press(i, src, vel){
   keyEls[i].classList.add('down');
   keyGlow[i] = 1;
   if (!was || src === 'song'){
-    noteOn(KEYS[i].midi, vel || .8);
+    heldPitch[i] = TUNE.pitches[i];
+    noteOn(heldPitch[i], vel || .8);
     fxHit(i, src === 'song' ? .75 : 1);
     if (st.mode === 'free' && src !== 'song') fxDrop(i);
   }
@@ -974,7 +1128,7 @@ function release(i, src){
   if (Object.keys(h).length) return;
   held[i] = null;
   keyEls[i].classList.remove('down');
-  noteOff(KEYS[i].midi, false);
+  noteOff(heldPitch[i], false);
 }
 function releaseSongNotes(){ for (var i = 0; i < 9; i++) release(i, 'song'); pendingOff.length = 0; }
 
@@ -1127,7 +1281,7 @@ function onUserNote(i){
     st.firstTry = false;
     st.misses++;
     flashWrong(i);
-    coachSay('bad', '✗ That was ' + KEYS[i].cap + ' (' + KEYS[i].name + '). Try ' + KEYS[tg.k].cap + '.');
+    coachSay('bad', '✗ That was ' + KEYS[i].cap + ' (' + TUNE.names[i] + '). Try ' + KEYS[tg.k].cap + '.');
   }
 }
 function flashWrong(i){
@@ -1153,16 +1307,23 @@ function finishLearn(){
    HUD, coach, toast
    ———————————————————————————————————————————————— */
 var hudKicker = $('hudKicker'), hudTitle = $('hudTitle'), hudBy = $('hudBy');
-var chipLevel = $('chipLevel'), chipArr = $('chipArr'), chipArrText = $('chipArrText'), arrTip = $('arrTip'), chipRemove = $('chipRemove');
+var chipLevel = $('chipLevel'), chipVoice = $('chipVoice'), chipArr = $('chipArr'), chipArrText = $('chipArrText'), arrTip = $('arrTip'), chipRemove = $('chipRemove');
 var progEl = $('prog'), progBar = $('progBar');
 var coachEl = $('coach'), coachCap = $('coachCap'), coachNote = $('coachNote'), coachMsg = $('coachMsg'), coachCount = $('coachCount');
 
+function tuningNote(s){
+  var t = s.tune;
+  if (t.folded) return 'It uses more than nine different notes, so the ' + t.folded + ' least-used ' + (t.folded === 1 ? 'one was' : 'ones were') + ' folded into the nearest key.';
+  if (t.used === 9) return 'It uses exactly nine different notes — one per key.';
+  return 'It uses ' + t.used + ' different notes; the other ' + (9 - t.used) + ' keys continue its scale, for free play.';
+}
 function paintHud(){
-  var s = st.song, free = st.mode === 'free';
+  var s = st.song, free = st.mode === 'free', sound = s.key + ' · ' + VOICES[s.voice || 'grand'].label;
+  chipVoice.textContent = sound;
   if (free){
     hudKicker.textContent = 'Free play';
     hudTitle.textContent = 'Play anything';
-    hudBy.textContent = 'A S D F G H J K L play C4 up to D5. Tap, click, or slide across the keys — several fingers at once work too.';
+    hudBy.textContent = 'The keys are tuned for “' + s.title + '”. Pick another melody to retune them. Tap, click or slide across the keys — several fingers at once work too.';
   } else {
     hudKicker.textContent = st.mode === 'listen' ? 'Listen · now playing' : 'Learn · the song waits for you';
     hudTitle.textContent = s.title;
@@ -1171,11 +1332,11 @@ function paintHud(){
     for (var i = 0; i < 3 && L.pips; i++) pips += '<i' + (i < L.pips ? ' class="on"' : '') + '></i>';
     chipLevel.innerHTML = (pips ? '<span class="pips" aria-hidden="true">' + pips + '</span>' : '') + L.label;
     chipLevel.style.setProperty('--c', L.c);
-    chipArrText.innerHTML = s.arr.simplified ? 'Simplified<span class="long"> arrangement</span>' : 'Full melody';
-    arrTip.textContent = s.arr.note;
-    chipRemove.hidden = s.level !== 'imported';
+    chipArrText.textContent = s.arr.label;
+    arrTip.textContent = s.arr.note + ' ' + tuningNote(s);
   }
-  $('hudChips').hidden = free;
+  chipLevel.hidden = chipArr.hidden = free;
+  chipRemove.hidden = free || s.level !== 'imported';
   progEl.hidden = free;
   paintCoach();
 }
@@ -1191,7 +1352,7 @@ function paintCoach(){
     var k = KEYS[tg.k];
     coachCap.textContent = k.cap;
     coachCap.style.setProperty('--c', k.color);
-    coachNote.textContent = k.name + ' · ' + k.fingerText;
+    coachNote.textContent = TUNE.names[tg.k] + ' · ' + k.fingerText;
     if (performance.now() > msgT){
       coachMsg.className = 'coach-msg';
       coachMsg.textContent = st.waiting ? 'Your turn — press ' + k.cap : 'Get ready…';
@@ -1395,7 +1556,7 @@ function draw(dt, now){
       if (h > 18){ c.fillStyle = 'rgba(255,255,255,.45)'; c.fillRect(x + 5, top + 5, 3, h - 10); }
       if (lab !== 'off' && h >= 20){
         c.fillStyle = '#14163A';
-        c.fillText(lab === 'keys' ? KEYS[k].cap : KEYS[k].name, laneX[k] + 2, bot - 7);
+        c.fillText(lab === 'keys' ? KEYS[k].cap : TUNE.names[k], laneX[k] + 2, bot - 7);
       }
       if (st.waiting === e){
         c.globalAlpha = .65 + .35 * Math.sin(now / 130);
@@ -1668,42 +1829,22 @@ function segment(tr, opt){
   return notes;
 }
 
-/* Choose the transposition that lands the most note-time on home-row keys,
-   then snap every note to its nearest key (contour-aware) and tie any
-   moved note that lands on the key it follows. */
-function fitToRow(notes){
-  if (!notes.length) return {ev:[], shift:0, snapped:0, clamped:0};
-  var best = null, s, i;
-  for (s = -48; s <= 48; s++){
-    var sc = 0;
-    for (i = 0; i < notes.length; i++){
-      var m = notes[i].midi + s, w = Math.min(notes[i].d, 1);
-      if (m >= LOW && m <= HIGH) sc += (KEY_OF[m] !== undefined ? 1 : .3) * w;
-      else sc -= Math.min(12, m < LOW ? LOW - m : m - HIGH) * .15 * w;
-    }
-    sc -= Math.abs(s) * .0004;
-    if (!best || sc > best.sc) best = {s:s, sc:sc};
-  }
-  var ev = [], prev = null, snapped = 0, clamped = 0, t0 = notes[0].t;
-  for (i = 0; i < notes.length; i++){
-    var nt = notes[i], mm = nt.midi + best.s, q = quantize(mm, prev), t = nt.t - t0, last = ev[ev.length - 1];
-    if (mm < LOW || mm > HIGH) clamped++; else if (q !== mm) snapped++;
-    prev = q;
-    if (q !== mm && last && last.m === q && t - (last.t + last.d) < .06){ last.d = Math.round((t + nt.d - last.t) * 100) / 100; continue; }
-    ev.push({t:Math.round(t * 100) / 100, d:Math.round(Math.max(.08, nt.d) * 100) / 100, m:q, k:KEY_OF[q]});
-  }
-  for (i = 0; i < ev.length - 1; i++){
+/* Keep the recording's own pitches: tune nine keys to it (folding the
+   rarest pitches into neighbours if it uses more than nine), start the clock
+   at the first note, and trim overlaps. */
+function fitImport(notes){
+  if (!notes.length) return {ev:[]};
+  var t0 = notes[0].t, song = {voice:'grand'};
+  finalizeSong(song, notes.map(function(n){
+    return {t:Math.round((n.t - t0) * 100) / 100, d:Math.round(Math.max(.08, n.d) * 100) / 100, m:n.midi};
+  }));
+  var ev = song.ev, moved = 0;
+  for (var i = 0; i < ev.length - 1; i++){
     if (ev[i].t + ev[i].d > ev[i + 1].t - .02) ev[i].d = Math.max(.06, Math.round((ev[i + 1].t - .02 - ev[i].t) * 100) / 100);
   }
-  return {ev:ev, shift:best.s, snapped:snapped, clamped:clamped};
-}
-
-function describeShift(s){
-  if (!s) return 'Kept at its original pitch';
-  var a = Math.abs(s), oct = Math.floor(a / 12), semi = a % 12, parts = [];
-  if (oct) parts.push(oct === 1 ? 'an octave' : oct + ' octaves');
-  if (semi) parts.push(semi + ' semitone' + (semi > 1 ? 's' : ''));
-  return (s > 0 ? 'Moved up ' : 'Moved down ') + parts.join(' and ');
+  notes.forEach(function(n){ if (song.tune.remap(n.midi) !== n.midi) moved++; });
+  var l = ev[ev.length - 1];
+  return {ev:ev, tune:song.tune, key:song.key, moved:moved, len:l.t + l.d};
 }
 function fmtTime(sec){ var m = Math.floor(sec / 60), s = Math.round(sec % 60); if (s === 60){ m++; s = 0; } return m + ':' + (s < 10 ? '0' : '') + s; }
 
@@ -1736,7 +1877,7 @@ async function analyse(buf, name){
 }
 function buildTranscription(){
   IMP.raw = segment(IMP.track, DETAIL[IMP.detail]);
-  IMP.fit = fitToRow(IMP.raw);
+  IMP.fit = fitImport(IMP.raw);
   IMP.notes = IMP.fit.ev;
   if (IMP.notes.length) renderStats();
 }
@@ -1744,15 +1885,15 @@ function renderStats(){
   var raw = IMP.raw, f = IMP.fit, lo = Infinity, hi = -Infinity;
   raw.forEach(function(n){ lo = Math.min(lo, n.midi); hi = Math.max(hi, n.midi); });
   var last = f.ev[f.ev.length - 1];
-  var rows = [
+  var t = f.tune, rows = [
     ['Notes found', f.ev.length + (IMP.buffer.duration > MAX_SEC ? ' (first 2½ min)' : '')],
     ['Length', fmtTime(last.t + last.d)],
-    ['Heard between', nameOf(lo) + ' and ' + nameOf(hi)],
-    ['To fit the row', describeShift(f.shift)],
-    ['Snapped to a key', f.snapped + ' sharp/flat note' + (f.snapped === 1 ? '' : 's')],
-    ['Pulled into range', f.clamped + ' note' + (f.clamped === 1 ? '' : 's')]
+    ['Sounds like', f.key],
+    ['Heard between', spell(lo, t.flats) + ' and ' + spell(hi, t.flats)],
+    ['Folded to fit nine keys', t.folded ? t.folded + ' rare pitch' + (t.folded === 1 ? '' : 'es') + ' · ' + f.moved + ' note' + (f.moved === 1 ? '' : 's') : 'Nothing — it fits as heard'],
+    ['Keys tuned to', t.names.join('  '), 'wide']
   ];
-  $('impStats').innerHTML = rows.map(function(r){ return '<div><dt>' + r[0] + '</dt><dd>' + r[1] + '</dd></div>'; }).join('');
+  $('impStats').innerHTML = rows.map(function(r){ return '<div' + (r[2] ? ' class="' + r[2] + '"' : '') + '><dt>' + r[0] + '</dt><dd>' + r[1] + '</dd></div>'; }).join('');
 }
 function drawRoll(){
   var cv = $('roll'), r = cv.getBoundingClientRect();
@@ -1776,12 +1917,10 @@ function drawRoll(){
 function commitImport(mode){
   if (!IMP.notes.length) return;
   var title = ($('impName').value || '').trim().slice(0, 60) || 'My recording', f = IMP.fit;
-  var note = 'Auto-transcribed in your browser from “' + IMP.fileName + '”. ' + describeShift(f.shift) +
-    ' to sit on the home row; ' + f.snapped + ' sharp/flat notes snapped to a neighbouring key and ' + f.clamped +
-    ' pulled into range. Treat it as a sketch — busy recordings transcribe roughly.';
-  var ev = IMP.notes.map(function(e){ return {t:e.t, d:e.d, m:e.m, k:e.k}; }), last = ev[ev.length - 1];
+  var note = 'Auto-transcribed in your browser from “' + IMP.fileName + '”, at the pitch it was recorded. Treat it as a sketch — busy recordings transcribe roughly.';
   var song = {id:'imp-' + Date.now().toString(36), title:title, by:'Your recording · auto-transcribed', level:'imported',
-    bpm:60, arr:{simplified:true, note:note}, ev:ev, len:last.t + last.d};
+    bpm:60, voice:'grand', key:f.key, arr:{label:'Transcribed', note:note}, tune:f.tune, len:f.len,
+    ev:IMP.notes.map(function(e){ return {t:e.t, d:e.d, m:e.m, k:e.k}; })};
   IMPORTS.unshift(song);
   if (IMPORTS.length > 8) IMPORTS.length = 8;
   saveImports();
@@ -1808,7 +1947,7 @@ function startPreview(){
   src.start();
   var fac = Math.max(1, Math.round(AC.sampleRate / 16000));
   pv = {src:src, g:g, an:an, fac:fac, sr:AC.sampleRate / fac, data:new Float32Array(an.fftSize),
-        ds:new Float32Array(Math.ceil(an.fftSize / fac) + 1), d:new Float32Array(400), lastQ:null, lit:-1};
+        ds:new Float32Array(Math.ceil(an.fftSize / fac) + 1), d:new Float32Array(400), lit:-1};
   $('hearBtn').querySelector('span').textContent = 'Stop';
   previewLoop();
 }
@@ -1821,9 +1960,9 @@ function previewLoop(){
   if (Math.sqrt(s / n) > .008 && W + tMax + 1 <= n) r = yin(pv.ds, 0, W, Math.floor(pv.sr / 1800), tMax, pv.d, pv.sr);
   var lit = -1;
   if (r){
-    var heard = Math.round(r.midi), q = quantize(heard + (IMP.fit ? IMP.fit.shift : 0), pv.lastQ);
-    pv.lastQ = q; lit = KEY_OF[q];
-    $('hearOut').textContent = 'Hearing ≈ ' + nameOf(heard) + '  →  key ' + KEYS[lit].cap + ' (' + KEYS[lit].name + ')';
+    var heard = Math.round(r.midi), tune = IMP.fit.tune;
+    lit = tune.keyOf(tune.remap(heard));
+    $('hearOut').textContent = 'Hearing ≈ ' + spell(heard, tune.flats) + '  →  key ' + KEYS[lit].cap + ' (' + tune.names[lit] + ')';
     keyGlow[lit] = Math.max(keyGlow[lit], .8);
   } else {
     $('hearOut').textContent = 'Listening…';
@@ -1938,6 +2077,11 @@ window.addEventListener('drop', function(e){
    Controls
    ———————————————————————————————————————————————— */
 var playBtn = $('playBtn'), restartBtn = $('restartBtn'), tempoEl = $('tempo'), tempoOut = $('tempoOut'), muteBtn = $('muteBtn');
+var volEl = $('volume'), volOut = $('volOut');
+function releaseAllKeys(){
+  for (var i = 0; i < 9; i++){ var h = held[i]; if (h) Object.keys(h).forEach(function(src){ release(i, src); }); }
+  pendingOff.length = 0;
+}
 
 function buildSelect(){
   sel.innerHTML = '';
@@ -1949,7 +2093,7 @@ function buildSelect(){
     list.forEach(function(s){
       var o = document.createElement('option');
       o.value = s.id;
-      o.textContent = s.title + (s.arr.simplified && s.level !== 'imported' ? ' (simplified)' : '');
+      o.textContent = s.title;
       og.appendChild(o);
     });
     sel.appendChild(og);
@@ -1959,6 +2103,8 @@ function buildSelect(){
 function selectSong(id){
   st.song = findSong(id) || LIBRARY[2];
   sel.value = st.song.id;
+  releaseAllKeys();
+  applyTuning();
   resetSong();
   st.playing = true;
   paintPlay(); paintHud(); savePrefs();
@@ -1996,6 +2142,7 @@ function setLabels(l){
   savePrefs();
 }
 function paintTempo(){ tempoEl.value = Math.round(st.tempo * 100); tempoOut.textContent = Math.round(st.tempo * 100) + '%'; }
+function paintVolume(){ volEl.value = Math.round(st.volume * 100); volOut.textContent = Math.round(st.volume * 100) + '%'; }
 function paintMute(){
   muteBtn.classList.toggle('muted', st.muted);
   muteBtn.setAttribute('aria-pressed', String(st.muted));
@@ -2008,9 +2155,10 @@ Array.prototype.forEach.call(document.querySelectorAll('[data-mode]'), function(
 Array.prototype.forEach.call(document.querySelectorAll('[data-lab]'), function(b){
   b.addEventListener('click', function(){ setLabels(b.getAttribute('data-lab')); });
 });
+// In free play, picking a melody just retunes the keys to it.
 sel.addEventListener('change', function(){
   selectSong(sel.value);
-  if (st.mode === 'free') setMode('listen');
+  if (st.mode === 'free') showToast('Keys retuned', st.song.key + ' · ' + VOICES[st.song.voice].label + ' — tuned for ' + st.song.title + '.');
 });
 // A focused melody picker would otherwise swallow A–L as type-ahead.
 sel.addEventListener('keydown', function(e){ if (CODE_TO_KEY[e.code] !== undefined && !e.metaKey && !e.ctrlKey && !e.altKey) e.preventDefault(); });
@@ -2021,8 +2169,17 @@ muteBtn.addEventListener('click', function(){
   st.muted = !st.muted;
   paintMute(); savePrefs();
   initAudio();
-  if (master) master.gain.setTargetAtTime(st.muted ? 0 : .9, AC.currentTime, .04);
+  applyVolume();
   if (st.muted){ Object.keys(voices).forEach(function(m){ noteOff(+m, true); }); }
+});
+// Moving the volume slider also unmutes.
+volEl.addEventListener('input', function(){
+  st.volume = +volEl.value / 100;
+  if (st.muted && st.volume > 0){ st.muted = false; paintMute(); }
+  volOut.textContent = volEl.value + '%';
+  initAudio();
+  applyVolume();
+  savePrefs();
 });
 chipRemove.addEventListener('click', function(){
   var s = st.song, at = IMPORTS.indexOf(s);
@@ -2043,6 +2200,7 @@ buildKeys();
 buildSelect();
 setLabels(st.labels);
 paintTempo();
+paintVolume();
 paintMute();
 paintGate();
 if (saved && saved.song) st.song = findSong(saved.song) || st.song;
@@ -2052,15 +2210,16 @@ if (saved && /^(free|listen|learn)$/.test(saved.mode)) st.mode = saved.mode;
 if (/^#(perf|stress)$/.test(location.hash)){
   perfOn = true;
   $('perf').hidden = false;
-  window.__homerow = {IMP:IMP, segment:segment, DETAIL:DETAIL};
+  window.__homerow = {IMP:IMP, segment:segment, DETAIL:DETAIL, LIBRARY:LIBRARY, buildTuning:buildTuning};
   if (location.hash === '#stress'){
     var sev = [], r = rng(7), k = 4;
     for (var n = 0; n < 1600; n++){
       k = Math.max(0, Math.min(8, k + ((r() * 5) | 0) - 2));
-      sev.push({t:n * .125, d:.12 + ((r() * 3) | 0) * .125, m:KEYS[k].midi, k:k});
+      sev.push({t:n * .125, d:.12 + ((r() * 3) | 0) * .125, m:[60, 62, 64, 65, 67, 69, 71, 72, 74][k]});
     }
     var stress = {id:'stress', title:'Stress test · 1,600 notes', by:'Generated · eight notes per beat at 160 bpm',
-      level:'advanced', bpm:160, arr:{simplified:false, note:'A random walk across all nine keys to load the renderer.'}, ev:sev, len:200};
+      level:'advanced', bpm:160, voice:'grand', arr:{label:'Generated', note:'A random walk across all nine keys to load the renderer.'}, len:200};
+    finalizeSong(stress, sev);
     LIBRARY.push(stress);
     buildSelect();
     st.song = stress;
@@ -2068,6 +2227,7 @@ if (/^#(perf|stress)$/.test(location.hash)){
   }
 }
 sel.value = st.song.id;
+applyTuning();
 setMode(st.mode);
 
 layout();
