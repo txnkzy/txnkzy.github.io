@@ -758,7 +758,9 @@ var TW_B = 'G4:1 G4:1 F4:1 F4:1 E4:1 E4:1 D4:2 ';
 var ODE_A = 'E4:1 E4:1 F4:1 G4:1 G4:1 F4:1 E4:1 D4:1 C4:1 C4:1 D4:1 E4:1 ';
 var CAN_A = 'C4:2 D4:.5 F4:.5 E4:.5 D4:.5 G4:1 G4:1 G4:.5 A4:.5 E4:.5 F4:.5 D4:1 D4:1 D4:.5 F4:.5 E4:.5 D4:.5 ';
 var MIN_A = 'D5:1 G4:.5 A4:.5 B4:.5 C5:.5 D5:1 G4:1 G4:1 E5:1 C5:.5 D5:.5 E5:.5 F#5:.5 G5:1 G4:1 G4:1 C5:1 D5:.5 C5:.5 B4:.5 A4:.5 ';
-var ELISE_A = 'E5:.25 D#5:.25 E5:.25 B4:.25 D5:.25 C5:.25 A4:.5 -:.25 C4:.25 E4:.25 A4:.25 ';
+var RUNAWAY_RIFF = 'E6:1 E6:1 E6:2 E6:1 E6:1 E5:2 D#6:2 D#6:2 D#6:2 D#5:2 ' +
+  'C#6:1.5 C#6:.5 C#6:2 C#6:1.5 C#6:.5 C#5:1.5 C#5:.5 A5:1.5 A5:.5 A5:2 G#5:2 E6:2 ';
+var ELISE_A ='E5:.25 D#5:.25 E5:.25 B4:.25 D5:.25 C5:.25 A4:.5 -:.25 C4:.25 E4:.25 A4:.25 ';
 
 var LIBRARY = [
   { id:'hot-cross-buns', title:'Hot Cross Buns', level:'beginner', bpm:96,
@@ -788,11 +790,10 @@ var LIBRARY = [
          'D4:1 D4:1 E4:1 C4:1 D4:1 E4:.5 F4:.5 E4:1 C4:1 D4:1 E4:.5 F4:.5 E4:1 D4:1 C4:1 D4:1 G3:2 ' +
          ODE_A + 'D4:1.5 C4:.5 C4:2' },
 
-  { id:'runaway-intro', title:'Runaway (piano intro)', level:'beginner', bpm:87,
+  { id:'runaway-intro', title:'Runaway (first minute)', level:'beginner', bpm:87,
     by:'Kanye West ft. Pusha T · 2010 · the opening piano riff',
-    arr:{label:'Excerpt', note:'The solo-piano intro, note for note and in the record’s key of E, transcribed by hand from the recording. Only the intro is included, since the song itself is copyrighted.'},
-    src:'E6:1 E6:1 E6:2 E6:1 E6:1 E5:2 D#6:2 D#6:2 D#6:2 D#5:2 ' +
-        'C#6:1.5 C#6:.5 C#6:2 C#6:1.5 C#6:.5 C#5:1.5 C#5:.5 A5:1.5 A5:.5 A5:2 G#5:2 E6:2' },
+    arr:{label:'Excerpt', note:'The piano riff from the first minute of the record, in its key of E, transcribed by hand from the recording: the solo intro, then the same eight bars twice more once the drums come in (0:21) and under the vocals (0:46), which aren’t included. Echo effects and a few extra repeated notes in the last pass are left out. Only this opening is included, since the song itself is copyrighted.'},
+    src: RUNAWAY_RIFF + RUNAWAY_RIFF + RUNAWAY_RIFF },
 
   { id:'frere-jacques', title:'Frère Jacques', level:'intermediate', bpm:120, shift:12,
     by:'Traditional · French round, c. 1780',
