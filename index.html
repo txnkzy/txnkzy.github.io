@@ -758,8 +758,11 @@ var TW_B = 'G4:1 G4:1 F4:1 F4:1 E4:1 E4:1 D4:2 ';
 var ODE_A = 'E4:1 E4:1 F4:1 G4:1 G4:1 F4:1 E4:1 D4:1 C4:1 C4:1 D4:1 E4:1 ';
 var CAN_A = 'C4:2 D4:.5 F4:.5 E4:.5 D4:.5 G4:1 G4:1 G4:.5 A4:.5 E4:.5 F4:.5 D4:1 D4:1 D4:.5 F4:.5 E4:.5 D4:.5 ';
 var MIN_A = 'D5:1 G4:.5 A4:.5 B4:.5 C5:.5 D5:1 G4:1 G4:1 E5:1 C5:.5 D5:.5 E5:.5 F#5:.5 G5:1 G4:1 G4:1 C5:1 D5:.5 C5:.5 B4:.5 A4:.5 ';
-var RUNAWAY_RIFF = 'E6:1 E6:1 E6:2 E6:1 E6:1 E5:2 D#6:2 D#6:2 D#6:2 D#5:2 ' +
-  'C#6:1.5 C#6:.5 C#6:2 C#6:1.5 C#6:.5 C#5:1.5 C#5:.5 A5:1.5 A5:.5 A5:2 G#5:2 E6:2 ';
+// Every note two beats apart; the low ones ring on under the next chord (pedal down).
+var RUNAWAY_RIFF = 'E6:2 E6:2 E6:2/2.5 E5:2/4.5 D#6:2 D#6:2 D#6:2/5.5 D#5:2/3.5 ' +
+  'C#6:2 C#6:2 C#6:2/4 C#5:2/5.5 A5:2 A5:2/4 G#5:2/3 E6:2 ';
+// The bass enters with the drums (beat 31) and moves just ahead of each chord: E, D#, C#, A, then B back to E.
+var RUNAWAY_BASS = 'E2+E3:8.25 D#2+D#3:8 C#2+C#3:8.25 A1+A2:5.5 B1+B2:2 ';
 var ELISE_A ='E5:.25 D#5:.25 E5:.25 B4:.25 D5:.25 C5:.25 A4:.5 -:.25 C4:.25 E4:.25 A4:.25 ';
 
 var LIBRARY = [
@@ -790,10 +793,11 @@ var LIBRARY = [
          'D4:1 D4:1 E4:1 C4:1 D4:1 E4:.5 F4:.5 E4:1 C4:1 D4:1 E4:.5 F4:.5 E4:1 D4:1 C4:1 D4:1 G3:2 ' +
          ODE_A + 'D4:1.5 C4:.5 C4:2' },
 
-  { id:'runaway-intro', title:'Runaway (first minute)', level:'beginner', bpm:87,
+  { id:'runaway-intro', title:'Runaway (first minute)', level:'beginner', bpm:87, pedal:true,
     by:'Kanye West ft. Pusha T · 2010 · the opening piano riff',
-    arr:{label:'Excerpt', note:'The piano riff from the first minute of the record, in its key of E, transcribed by hand from the recording: the solo intro, then the same eight bars twice more once the drums come in (0:21) and under the vocals (0:46), which aren’t included. Echo effects and a few extra repeated notes in the last pass are left out. Only this opening is included, since the song itself is copyrighted.'},
-    src: RUNAWAY_RIFF + RUNAWAY_RIFF + RUNAWAY_RIFF },
+    arr:{label:'Excerpt', note:'The first minute of the record, in its key of E, transcribed from the recording: the slow, ringing piano riff on your keys, played three times as on the record, with the bass line playing underneath once the drums come in at 0:21. The sustain pedal is down, so notes ring after you let go. The vocals (from 0:46), drums and the piano’s echo effect aren’t included. Only this opening is here, since the song itself is copyrighted.'},
+    src: RUNAWAY_RIFF + RUNAWAY_RIFF + RUNAWAY_RIFF,
+    acc: '-:31 ' + RUNAWAY_BASS + RUNAWAY_BASS + 'E2+E3:1' },
 
   { id:'frere-jacques', title:'Frère Jacques', level:'intermediate', bpm:120, shift:12,
     by:'Traditional · French round, c. 1780',
@@ -847,12 +851,14 @@ var LIBRARY = [
         ELISE_A + 'B4:.5 -:.25 E4:.25 C5:.25 B4:.25 A4:1.5' }
 ];
 
+// Tokens: "N:beats"; "N:beats/rings" for a note that keeps sounding past the next one
+// (the sustain pedal); "A+B:beats" for notes struck together; "-:beats" for a rest.
 function compile(src, shift){
   var ev = [], t = 0;
   src.trim().split(/\s+/).forEach(function(tok){
     if (tok === '|') return;
-    var p = tok.split(':'), d = parseFloat(p[1]);
-    if (p[0] !== '-') ev.push({t:t, d:d, m:parseNote(p[0]) + (shift || 0)});
+    var p = tok.split(':'), q = p[1].split('/'), d = parseFloat(q[0]), ring = q[1] ? parseFloat(q[1]) : d;
+    if (p[0] !== '-') p[0].split('+').forEach(function(n){ ev.push({t:t, d:ring, m:parseNote(n) + (shift || 0)}); });
     t += d;
   });
   return {ev:ev, len:t};
@@ -876,6 +882,7 @@ LIBRARY.forEach(function(s){
   var c = compile(s.src, s.shift);
   s.len = c.len;
   finalizeSong(s, c.ev);
+  if (s.acc) s.accEv = compile(s.acc, s.shift).ev;
 });
 
 /* ————————————————————————————————————————————————
@@ -1029,9 +1036,10 @@ function nearestSample(m){
 }
 function setTouch(name){ touch = TOUCH[name] || TOUCH.normal; }
 
-function noteOn(m, vel){
+function noteOn(m, vel, id){
   if (!AC || st.muted || AC.state !== 'running') return;
-  noteOff(m, true);
+  if (id === undefined) id = m;
+  noteOff(id, true);
   var t = AC.currentTime, v = Math.max(.25, Math.min(1, (vel || .8) * touch.v / .8));
   var out = AC.createGain(), srcs = [];
   if (samplesReady){
@@ -1054,9 +1062,9 @@ function noteOn(m, vel){
   srcs[0].onended = function(){
     out.disconnect();
     var at = voiceOrder.indexOf(voice); if (at >= 0) voiceOrder.splice(at, 1);
-    if (voices[m] === voice) delete voices[m];
+    if (voices[id] === voice) delete voices[id];
   };
-  voices[m] = voice;
+  voices[id] = voice;
   voiceOrder.push(voice);
   if (voiceOrder.length > MAX_VOICES) damp(voiceOrder.shift(), true);
 }
@@ -1089,10 +1097,10 @@ function damp(v, quick){
     v.srcs.forEach(function(s){ try { s.stop(t + tau * 8); } catch (e) {} });
   } catch (e) {}
 }
-function noteOff(m, quick){
-  var v = voices[m];
+function noteOff(id, quick){
+  var v = voices[id];
   if (!v) return;
-  delete voices[m];
+  delete voices[id];
   damp(v, quick);
 }
 
@@ -1163,9 +1171,14 @@ function release(i, src){
   if (Object.keys(h).length) return;
   held[i] = null;
   keyEls[i].classList.remove('down');
+  if (st.song.pedal && src !== 'song') return;   // pedal down: your note keeps ringing
   noteOff(heldPitch[i], false);
 }
-function releaseSongNotes(){ for (var i = 0; i < 9; i++) release(i, 'song'); pendingOff.length = 0; }
+function releaseSongNotes(){
+  for (var i = 0; i < 9; i++) release(i, 'song');
+  pendingOff.length = 0;
+  ACC.forEach(function(a){ if (a.on && !a.off){ a.off = true; noteOff('acc' + a.m, false); } });
+}
 
 var ptr = {};
 function keyAt(x, y){
@@ -1243,11 +1256,13 @@ function paintGate(){ gateEl.hidden = !!(AC && AC.state === 'running'); }
 /* ————————————————————————————————————————————————
    Song engine. Time is in beats; tempo scales beats-per-second.
    ———————————————————————————————————————————————— */
-var EV = [], pendingOff = [];
+var EV = [], pendingOff = [], ACC = [];
 function bps(){ return st.song.bpm * st.tempo / 60; }
 function resetSong(){
   releaseSongNotes();
   EV = st.song.ev.map(function(e){ return {t:e.t, d:e.d, m:e.m, k:e.k, on:false, hit:false}; });
+  ACC = (st.song.accEv || []).map(function(a){ return {t:a.t, d:a.d, m:a.m, on:false, off:false}; });
+  st.accIdx = 0;
   st.t = -(st.mode === 'learn' ? 3 : 2.4) * bps();
   st.idx = 0; st.li = 0; st.waiting = null; st.hits = 0; st.misses = 0;
   st.firstTry = true; st.done = false; st.loopAt = 0; st.drawFrom = 0;
@@ -1271,6 +1286,17 @@ function advance(dt){
     }
   }
   st.t = nt;
+  // Accompaniment plays itself, under both Listen and Learn.
+  for (var ai = st.accIdx; ai < ACC.length; ai++){
+    var ac = ACC[ai];
+    if (ac.t > st.t) break;
+    if (!ac.on){ ac.on = true; noteOn(ac.m, .6, 'acc' + ac.m); }
+    st.accIdx = ai + 1;
+  }
+  for (ai = 0; ai < st.accIdx; ai++){
+    var ao = ACC[ai];
+    if (ao.on && !ao.off && st.t >= ao.t + ao.d * .98){ ao.off = true; noteOff('acc' + ao.m, false); }
+  }
   if (st.mode !== 'listen') return;
   for (var i = st.idx; i < EV.length; i++){
     var e = EV[i];
@@ -1346,7 +1372,10 @@ var chipLevel = $('chipLevel'), chipVoice = $('chipVoice'), chipArr = $('chipArr
 var progEl = $('prog'), progBar = $('progBar');
 var coachEl = $('coach'), coachCap = $('coachCap'), coachNote = $('coachNote'), coachMsg = $('coachMsg'), coachCount = $('coachCount');
 
-function soundOf(s){ var tl = (TOUCH[s.touch] || TOUCH.normal).label; return s.key + ' · grand piano' + (tl ? ', ' + tl : ''); }
+function soundOf(s){
+  var tl = (TOUCH[s.touch] || TOUCH.normal).label;
+  return s.key + ' · grand piano' + (tl ? ', ' + tl : '') + (s.pedal ? ', pedal down' : '') + (s.accEv ? ' · bass plays along' : '');
+}
 function tuningNote(s){
   var t = s.tune;
   if (t.folded) return 'It uses more than nine different notes, so the ' + t.folded + ' least-used ' + (t.folded === 1 ? 'one was' : 'ones were') + ' folded into the nearest key.';
@@ -2430,7 +2459,7 @@ muteBtn.addEventListener('click', function(){
   paintMute(); savePrefs();
   initAudio();
   applyVolume();
-  if (st.muted){ Object.keys(voices).forEach(function(m){ noteOff(+m, true); }); }
+  if (st.muted){ Object.keys(voices).forEach(function(id){ noteOff(isNaN(id) ? id : +id, true); }); }
 });
 // Moving the volume slider also unmutes.
 volEl.addEventListener('input', function(){
@@ -2471,7 +2500,8 @@ if (/^#(perf|stress)$/.test(location.hash)){
   perfOn = true;
   $('perf').hidden = false;
   window.__homerow = {IMP:IMP, segment:segment, DETAIL:DETAIL, LIBRARY:LIBRARY, buildTuning:buildTuning, yin:yin, analyse:analyse,
-    audio:function(){ return {state:AC && AC.state, ready:samplesReady, keys:sampleKeys, bufs:sampleBufs, gain:sampleGain}; }};
+    audio:function(){ return {state:AC && AC.state, ready:samplesReady, keys:sampleKeys, bufs:sampleBufs, gain:sampleGain, voices:Object.keys(voices), t:st.t}; },
+    advance:advance, st:st};
   if (location.hash === '#stress'){
     var sev = [], r = rng(7), k = 4;
     for (var n = 0; n < 1600; n++){
