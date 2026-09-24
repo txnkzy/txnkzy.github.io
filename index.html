@@ -763,6 +763,14 @@ var RUNAWAY_RIFF = 'E6:2 E6:2 E6:2/2.5 E5:2/4.5 D#6:2 D#6:2 D#6:2/5.5 D#5:2/3.5 
   'C#6:2 C#6:2 C#6:2/4 C#5:2/5.5 A5:2 A5:2/4 G#5:2/3 E6:2 ';
 // The bass enters with the drums (beat 31) and moves just ahead of each chord: E, D#, C#, A, then B back to E.
 var RUNAWAY_BASS = 'E2+E3:8.25 D#2+D#3:8 C#2+C#3:8.25 A1+A2:5.5 B1+B2:2 ';
+function softer(src, v){ return src.trim().split(/\s+/).map(function(t){ return t + '@' + v; }).join(' ') + ' '; }
+function firstNotes(src, n){ return src.trim().split(/\s+/).slice(0, n).join(' ') + ' '; }
+// 1:06 breakdown: the piano drops about 7 dB and skips the last E6; the bass drops out for the hit before the return.
+var RUNAWAY_BREAK = softer(firstNotes(RUNAWAY_RIFF, 15), .55) + '-:2 ';
+var RUNAWAY_BASS_BREAK = 'E2+E3:8.25 D#2+D#3:8 C#2+C#3:8.25 A1+A2:5.5 -:2 ';
+// 2:12: quieter again, and it stops after A5 A5 as the rolling-chord section takes over at 2:32.
+var RUNAWAY_LAST = softer(firstNotes(RUNAWAY_RIFF, 14), .6) + '-:2 ';
+var RUNAWAY_BASS_LAST = 'E2+E3:8.25 D#2+D#3:8 C#2+C#3:8.25 A1+A2:4.5 ';
 var ELISE_A ='E5:.25 D#5:.25 E5:.25 B4:.25 D5:.25 C5:.25 A4:.5 -:.25 C4:.25 E4:.25 A4:.25 ';
 
 var LIBRARY = [
@@ -793,11 +801,11 @@ var LIBRARY = [
          'D4:1 D4:1 E4:1 C4:1 D4:1 E4:.5 F4:.5 E4:1 C4:1 D4:1 E4:.5 F4:.5 E4:1 D4:1 C4:1 D4:1 G3:2 ' +
          ODE_A + 'D4:1.5 C4:.5 C4:2' },
 
-  { id:'runaway-intro', title:'Runaway (first minute)', level:'beginner', bpm:87, pedal:true,
-    by:'Kanye West ft. Pusha T · 2010 · the opening piano riff',
-    arr:{label:'Excerpt', note:'The first minute of the record, in its key of E, transcribed from the recording: the slow, ringing piano riff on your keys, played three times as on the record, with the bass line playing underneath once the drums come in at 0:21. The sustain pedal is down, so notes ring after you let go. The vocals (from 0:46), drums and the piano’s echo effect aren’t included. Only this opening is here, since the song itself is copyrighted.'},
-    src: RUNAWAY_RIFF + RUNAWAY_RIFF + RUNAWAY_RIFF,
-    acc: '-:31 ' + RUNAWAY_BASS + RUNAWAY_BASS + 'E2+E3:1' },
+  { id:'runaway-intro', title:'Runaway (opening)', level:'beginner', bpm:87, pedal:true,
+    by:'Kanye West ft. Pusha T · 2010 · the piano riff through its return, to 2:31',
+    arr:{label:'Excerpt', note:'The record’s first two and a half minutes, in its key of E, transcribed from the recording: the slow, ringing piano riff on your keys, seven times through as on the record — softer through the 1:06 breakdown, back in full at 1:28, and softer again from 2:12 — with the bass line underneath from 0:21. It stops at 2:31, just before the rolling-chord section. The sustain pedal is down, so notes ring after you let go. Vocals, drums and the piano’s echo effect aren’t included; only this opening is here, since the song itself is copyrighted.'},
+    src: RUNAWAY_RIFF + RUNAWAY_RIFF + RUNAWAY_RIFF + RUNAWAY_BREAK + RUNAWAY_RIFF + RUNAWAY_RIFF + RUNAWAY_LAST,
+    acc: '-:31 ' + RUNAWAY_BASS + RUNAWAY_BASS + RUNAWAY_BASS_BREAK + RUNAWAY_BASS + RUNAWAY_BASS + RUNAWAY_BASS_LAST },
 
   { id:'frere-jacques', title:'Frère Jacques', level:'intermediate', bpm:120, shift:12,
     by:'Traditional · French round, c. 1780',
@@ -852,13 +860,15 @@ var LIBRARY = [
 ];
 
 // Tokens: "N:beats"; "N:beats/rings" for a note that keeps sounding past the next one
-// (the sustain pedal); "A+B:beats" for notes struck together; "-:beats" for a rest.
+// (the sustain pedal); "A+B:beats" for notes struck together; "-:beats" for a rest;
+// a trailing "@0.55" plays the note softer (1 = full).
 function compile(src, shift){
   var ev = [], t = 0;
   src.trim().split(/\s+/).forEach(function(tok){
     if (tok === '|') return;
-    var p = tok.split(':'), q = p[1].split('/'), d = parseFloat(q[0]), ring = q[1] ? parseFloat(q[1]) : d;
-    if (p[0] !== '-') p[0].split('+').forEach(function(n){ ev.push({t:t, d:ring, m:parseNote(n) + (shift || 0)}); });
+    var at = tok.split('@'), v = at[1] ? parseFloat(at[1]) : undefined;
+    var p = at[0].split(':'), q = p[1].split('/'), d = parseFloat(q[0]), ring = q[1] ? parseFloat(q[1]) : d;
+    if (p[0] !== '-') p[0].split('+').forEach(function(n){ ev.push({t:t, d:ring, m:parseNote(n) + (shift || 0), v:v}); });
     t += d;
   });
   return {ev:ev, len:t};
@@ -871,7 +881,7 @@ function finalizeSong(s, ev){
   ev.forEach(function(e){
     var m = s.tune.remap(e.m), last = out[out.length - 1];
     if (m !== e.m && last && last.m === m && Math.abs(last.t + last.d - e.t) < .03){ last.d = e.t + e.d - last.t; return; }
-    out.push({t:e.t, d:e.d, m:m, k:s.tune.keyOf(m)});
+    out.push({t:e.t, d:e.d, m:m, k:s.tune.keyOf(m), v:e.v});
   });
   s.ev = out;
   var l = out[out.length - 1];
@@ -1260,7 +1270,7 @@ var EV = [], pendingOff = [], ACC = [];
 function bps(){ return st.song.bpm * st.tempo / 60; }
 function resetSong(){
   releaseSongNotes();
-  EV = st.song.ev.map(function(e){ return {t:e.t, d:e.d, m:e.m, k:e.k, on:false, hit:false}; });
+  EV = st.song.ev.map(function(e){ return {t:e.t, d:e.d, m:e.m, k:e.k, v:e.v, on:false, hit:false}; });
   ACC = (st.song.accEv || []).map(function(a){ return {t:a.t, d:a.d, m:a.m, on:false, off:false}; });
   st.accIdx = 0;
   st.t = -(st.mode === 'learn' ? 3 : 2.4) * bps();
@@ -1304,7 +1314,7 @@ function advance(dt){
     if (!e.on){
       e.on = true;
       for (var p = pendingOff.length - 1; p >= 0; p--) if (pendingOff[p].k === e.k) pendingOff.splice(p, 1);
-      press(e.k, 'song', .86);
+      press(e.k, 'song', .86 * (e.v || 1));
       e.offAt = e.t + Math.max(.1, e.d * .92);
       pendingOff.push(e);
     }
